@@ -41,7 +41,7 @@ def create_scan_json(scanDir, rootPath):
 
     experiments = []
     for e in experimentPaths:
-        if ".json" not in e:
+        if ".json" not in e:  # ignore parameter jsons
             parameters = getParameters(e)
             experiments.append({"data": e, "parameters": parameters})
 
