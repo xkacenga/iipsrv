@@ -1,0 +1,65 @@
+[
+    {
+        "prostata1": {
+            "flesh": "/home/xkacenga/diplomka/iipsrv/root/prostata1/flesh.tif",
+            "experiments": [
+                {
+                    "data": "/home/xkacenga/diplomka/iipsrv/root/prostata1/exp1.tif",
+                    "parameters": {
+                        "parameter1": true,
+                        "parameter2": false
+                    }
+                },
+                {
+                    "data": "/home/xkacenga/diplomka/iipsrv/root/prostata1/exp2.tif",
+                    "parameters": null
+                }
+            ]
+        }
+    },
+    {
+        "prostata2": {
+            "flesh": "/home/xkacenga/diplomka/iipsrv/root/prostata2/flesh.tif",
+            "experiments": [
+                {
+                    "data": "/home/xkacenga/diplomka/iipsrv/root/prostata2/exp1.tif",
+                    "parameters": null
+                },
+                {
+                    "data": "/home/xkacenga/diplomka/iipsrv/root/prostata2/exp2.tif",
+                    "parameters": null
+                }
+            ]
+        }
+    },
+    {
+        "prostata3": {
+            "flesh": "/home/xkacenga/diplomka/iipsrv/root/prostata3/flesh.tif",
+            "experiments": [
+                {
+                    "data": "/home/xkacenga/diplomka/iipsrv/root/prostata3/exp2.tif",
+                    "parameters": null
+                },
+                {
+                    "data": "/home/xkacenga/diplomka/iipsrv/root/prostata3/exp1.tif",
+                    "parameters": null
+                }
+            ]
+        }
+    },
+    {
+        "prostata4": {
+            "flesh": "/home/xkacenga/diplomka/iipsrv/root/prostata4/flesh.tif",
+            "experiments": [
+                {
+                    "data": "/home/xkacenga/diplomka/iipsrv/root/prostata4/exp2.tif",
+                    "parameters": null
+                },
+                {
+                    "data": "/home/xkacenga/diplomka/iipsrv/root/prostata4/exp1.tif",
+                    "parameters": null
+                }
+            ]
+        }
+    }
+]
