@@ -27,9 +27,7 @@
 #include "RawTile.h"
 #include "IIPImage.h"
 #include "JPEGCompressor.h"
-#ifdef HAVE_PNG
 #include "PNGCompressor.h"
-#endif
 #include "Cache.h"
 #include "Timer.h"
 #include "Watermark.h"
