@@ -74,6 +74,7 @@ void DeepZoom::run(Session *session, const std::string &argument)
       compressor = session->jpeg;
     } else if (format == "png") {
       session->view->output_format = PNG;
+      session->view->colourspace == GREYSCALE;
       compressor = session->png;
     }
 
