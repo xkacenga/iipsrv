@@ -136,7 +136,7 @@ void DeepZoom::run(Session *session, const std::string &argument)
       if (i == 0)
       {
         initHeader << session->response->createHTTPHeader("xml", currentImage->getTimestamp())
-                   << "<Images xmlns=\"http://rationai/deepzoom/images\">";
+                   << "<Images xmlns=\"http://rationai.fi.muni.cz/deepzoom/images\">";
       }
 
       initHeader << "<Image "
