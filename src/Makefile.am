@@ -55,6 +55,7 @@ iipsrv_fcgi_SOURCES = \
 			OBJ.cc \
 			FIF.cc \
 			JTL.cc \
+			JTLExt.cc \
 			TIL.cc \
 			ICC.cc \
 			CVT.cc \

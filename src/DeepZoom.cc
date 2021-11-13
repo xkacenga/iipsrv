@@ -69,11 +69,14 @@ void DeepZoom::run(Session *session, const std::string &argument)
   else
     prefix = argument.substr(0, argument.rfind("_files/"));
     string format = suffix.substr(suffix.find_last_of(".") + 1, suffix.length());
+
+    // Set correct compressor
     if (format == "jpg") {
       session->view->output_format = JPEG;
       compressor = session->jpeg;
     } else if (format == "png") {
       session->view->output_format = PNG;
+      // Transform all .png images to greyscale
       session->view->colourspace == GREYSCALE;
       compressor = session->png;
     }
@@ -133,16 +136,16 @@ void DeepZoom::run(Session *session, const std::string &argument)
       if (i == 0)
       {
         initHeader << session->response->createHTTPHeader("xml", currentImage->getTimestamp())
-                   << "<Images>";
+                   << "<Images xmlns=\"http://rationai/deepzoom/images\">";
       }
 
-      initHeader << "<Image xmlns=\"http://schemas.microsoft.com/deepzoom/2008\" "
-                 << "TileSize=\"" << tw << "\" Overlap=\"0\" Format=\""
-                 << "jpg"
+      initHeader << "<Image "
+                 << "TileSize=\"" << tw << "\" Overlap=\"0"
                  << "\">"
                  << "<Size Width=\"" << width << "\" Height=\"" << height << "\"/>"
                  << "</Image>";
 
+      // Send response only after processing all images
       if (paths.size() - 1 == i)
       {
         initHeader << "</Images>";
@@ -196,10 +199,10 @@ void DeepZoom::run(Session *session, const std::string &argument)
       // Calculate the tile index for this resolution from our x, y
       unsigned int tile = y * ntlx + x;
 
-      // Simply pass this on to our JTL send command
-
+      // Push tile from JTL.getTile() to our tiles vector
       compressedTiles.push_back(jtl.getTile(session, resolution, tile));
 
+      // Send appended tile(s) after processing all images
       if (i == paths.size() - 1)
       {
         jtl.send(compressor, compressedTiles);

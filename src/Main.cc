@@ -658,6 +658,9 @@ int main(int argc, char *argv[])
       // Try to get request string using POST
       // inspired by http://chriswu.me/blog/getting-request-uri-and-content-in-c-plus-plus-fcgi/
       if (request_string.empty()) {
+        if (loglevel >= 2) {
+          logfile << "Trying to process POST request" << endl;
+        }
         char *contentLengthString = FCGX_GetParam("CONTENT_LENGTH", request.envp);
         int contentLength;
         if (contentLengthString) {
