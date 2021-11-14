@@ -147,7 +147,7 @@ void DeepZoomExt::run(Session *session, const std::string &argument)
       // Send response only after processing all images
       if (paths.size() - 1 == i)
       {
-        initHeader << "</Images>";
+        initHeader << "</ImageArray>";
         session->out->putStr((const char *)initHeader.str().c_str(), initHeader.tellp());
         session->response->setImageSent();
         return;
