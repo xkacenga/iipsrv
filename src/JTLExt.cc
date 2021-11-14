@@ -35,19 +35,32 @@ void JTL_Ext::send(Compressor *compressor, const vector<CompressedTile> &compres
   if (session->loglevel >= 2) {
         *(session->logfile) << "JTLExt :: Appending tiles" << endl;
   }
+
+  Timer appendTimer;
+  appendTimer.start();
+  if (session->loglevel >= 2) {
+        *(session->logfile) << "JTLExt :: Starting append images timer" << endl;
+  }
+
   vector<Magick::Image> imagesToAppend;
   Magick::Blob appendedBlob;
   if (compressedTiles.size() > 1) {
     for (const CompressedTile &compressedTile : compressedTiles) {
-      Magick::Blob blob(compressedTile.rawtile.data, compressedTile.compressedLen);
-      Magick::Image image(blob);
-      imagesToAppend.push_back(image);
+      imagesToAppend.emplace_back(Magick::Blob(compressedTile.rawtile.data, compressedTile.compressedLen));
     }
+    if (session->loglevel >= 2) {
+        *(session->logfile) << "JTLExt :: Emplacing tiles finished in " << appendTimer.getTime() << " milliseconds." << endl;
+  }
     Magick::Image appended;
     Magick::appendImages(&appended, imagesToAppend.begin(), imagesToAppend.end(), true);
     appended.magick("PNG");
     appended.write(&appendedBlob);
   }
+
+  if (session->loglevel >= 2) {
+        *(session->logfile) << "JTLExt :: Append images finished in " << appendTimer.getTime() << " milliseconds." << endl;
+  }
+  
 
   // Send image data
   if (compressedTiles.size() == 1) {
