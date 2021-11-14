@@ -216,7 +216,7 @@ typedef struct CompressedTile{
   unsigned int compressedLen;
 } CompressedTile;
 
-class JTL_EXT : public Task
+class JTL_Ext : public Task
 {
 public:
   void run(Session *session, const std::string &argument);
@@ -321,6 +321,13 @@ public:
 
 /// DeepZoom Request Command
 class DeepZoom : public Task
+{
+public:
+  void run(Session *session, const std::string &argument);
+};
+
+/// DeepZoomExt Request Command
+class DeepZoomExt : public Task
 {
 public:
   void run(Session *session, const std::string &argument);

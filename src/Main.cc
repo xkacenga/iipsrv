@@ -390,10 +390,10 @@ int main(int argc, char *argv[])
       string protocol = uri_map_string.substr(pos + 2);
       bool supported_protocol = false;
 
-      // Make sure the command is one of our supported protocols: "IIP", "IIIF", "Zoomify", "DeepZoom"
+      // Make sure the command is one of our supported protocols: "IIP", "IIIF", "Zoomify", "DeepZoom", "DeepZoomExt"
       string prtcl = protocol;
       transform(prtcl.begin(), prtcl.end(), prtcl.begin(), ::tolower);
-      if (prtcl == "iip" || prtcl == "iiif" || prtcl == "zoomify" || prtcl == "deepzoom")
+      if (prtcl == "iip" || prtcl == "iiif" || prtcl == "zoomify" || prtcl == "deepzoom" || prtcl == "deepzoomext")
       {
         supported_protocol = true;
       }

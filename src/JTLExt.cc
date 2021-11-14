@@ -27,13 +27,13 @@
 
 using namespace std;
 
-void JTL_EXT::send(Compressor *compressor, const vector<CompressedTile> &compressedTiles)
+void JTL_Ext::send(Compressor *compressor, const vector<CompressedTile> &compressedTiles)
 {
   stringstream dataStream;
 
   // Append images vertically if needed
   if (session->loglevel >= 2) {
-        *(session->logfile) << "JTL :: Appending tiles" << endl;
+        *(session->logfile) << "JTLExt :: Appending tiles" << endl;
   }
   vector<Magick::Image> imagesToAppend;
   Magick::Blob appendedBlob;
@@ -55,7 +55,7 @@ void JTL_EXT::send(Compressor *compressor, const vector<CompressedTile> &compres
     header << session->response->createHTTPHeader(compressor->getMimeType(), (*session->image)->getTimestamp(), compressedTiles[0].compressedLen);
     if (session->out->putStr((const char *)header.str().c_str(), header.tellp()) == -1) {
       if (session->loglevel >= 1) {
-        *(session->logfile) << "JTL :: Error writing HTTP header" << endl;
+        *(session->logfile) << "JTLExt :: Error writing HTTP header" << endl;
       }
     }
     dataStream.write(static_cast<const char *>(compressedTiles[0].rawtile.data), compressedTiles[0].compressedLen);
@@ -64,7 +64,7 @@ void JTL_EXT::send(Compressor *compressor, const vector<CompressedTile> &compres
     header << session->response->createHTTPHeader(compressor->getMimeType(), (*session->image)->getTimestamp(), appendedBlob.length());
     if (session->out->putStr((const char *)header.str().c_str(), header.tellp()) == -1) {
       if (session->loglevel >= 1) {
-        *(session->logfile) << "JTL :: Error writing HTTP header" << endl;
+        *(session->logfile) << "JTLExt :: Error writing HTTP header" << endl;
       }
     }
     dataStream.write(static_cast<const char *>(appendedBlob.data()), appendedBlob.length());
@@ -73,7 +73,7 @@ void JTL_EXT::send(Compressor *compressor, const vector<CompressedTile> &compres
 
   if (session->out->flush() == -1) {
     if (session->loglevel >= 1) {
-      *(session->logfile) << "JTL :: Error flushing tile" << endl;
+      *(session->logfile) << "JTLExt :: Error flushing tile" << endl;
     }
   }
 
@@ -81,12 +81,12 @@ void JTL_EXT::send(Compressor *compressor, const vector<CompressedTile> &compres
   session->response->setImageSent();
 }
 
-CompressedTile JTL_EXT::getTile(Session *session, int resolution, int tile)
+CompressedTile JTL_Ext::getTile(Session *session, int resolution, int tile)
 {
   Timer function_timer;
 
   if (session->loglevel >= 3) {
-    (*session->logfile) << "JTL handler reached" << endl;
+    (*session->logfile) << "JTLExt handler reached" << endl;
   }
 
   // Make sure we have set our image
@@ -100,7 +100,7 @@ CompressedTile JTL_EXT::getTile(Session *session, int resolution, int tile)
   // Sanity check
   if ((resolution < 0) || (tile < 0)) {
     ostringstream error;
-    error << "JTL :: Invalid resolution/tile number: " << resolution << "," << tile;
+    error << "JTLExt :: Invalid resolution/tile number: " << resolution << "," << tile;
     throw error.str();
   }
 
@@ -135,14 +135,14 @@ CompressedTile JTL_EXT::getTile(Session *session, int resolution, int tile)
   compressor->setResolution(dpi_x, dpi_y, (*session->image)->dpi_units);
 
   if (session->loglevel >= 5) {
-    *(session->logfile) << "JTL :: Setting physical resolution of tile to " << dpi_x << " x " << dpi_y
+    *(session->logfile) << "JTLExt :: Setting physical resolution of tile to " << dpi_x << " x " << dpi_y
                         << (((*session->image)->dpi_units == 1) ? " pixels/inch" : " pixels/cm") << endl;
   }
 
   // Embed ICC profile
   if (session->view->embedICC() && ((*session->image)->getMetadata("icc").size() > 0)) {
     if (session->loglevel >= 3) {
-      *(session->logfile) << "JTL :: Embedding ICC profile with size "
+      *(session->logfile) << "JTLExt :: Embedding ICC profile with size "
                           << (*session->image)->getMetadata("icc").size() << " bytes" << endl;
     }
     compressor->setICCProfile((*session->image)->getMetadata("icc"));
@@ -154,16 +154,16 @@ CompressedTile JTL_EXT::getTile(Session *session, int resolution, int tile)
   int len = rawtile.dataLength;
 
   if (session->loglevel >= 2) {
-    *(session->logfile) << "JTL :: Tile size: " << rawtile.width << " x " << rawtile.height << endl
-                        << "JTL :: Channels per sample: " << rawtile.channels << endl
-                        << "JTL :: Bits per channel: " << rawtile.bpc << endl
-                        << "JTL :: Data size is " << len << " bytes" << endl;
+    *(session->logfile) << "JTLExt :: Tile size: " << rawtile.width << " x " << rawtile.height << endl
+                        << "JTLExt :: Channels per sample: " << rawtile.channels << endl
+                        << "JTLExt :: Bits per channel: " << rawtile.bpc << endl
+                        << "JTLExt :: Data size is " << len << " bytes" << endl;
   }
 
   // Convert CIELAB to sRGB
   if ((*session->image)->getColourSpace() == CIELAB) {
     if (session->loglevel >= 4) {
-      *(session->logfile) << "JTL :: Converting from CIELAB->sRGB";
+      *(session->logfile) << "JTLExt :: Converting from CIELAB->sRGB";
       function_timer.start();
     }
     session->processor->LAB2sRGB(rawtile);
@@ -178,7 +178,7 @@ CompressedTile JTL_EXT::getTile(Session *session, int resolution, int tile)
       ((session->view->output_format == PNG) && (rawtile.channels > 4))) {
     unsigned int bands = (rawtile.channels == 2) ? 1 : 3;
     if (session->loglevel >= 4) {
-      *(session->logfile) << "JTL :: Flattening channels to " << bands;
+      *(session->logfile) << "JTLExt :: Flattening channels to " << bands;
       function_timer.start();
     }
     session->processor->flatten(rawtile, bands);
@@ -190,7 +190,7 @@ CompressedTile JTL_EXT::getTile(Session *session, int resolution, int tile)
   // Convert to greyscale if requested
   if ((*session->image)->getColourSpace() == sRGB && session->view->colourspace == GREYSCALE) {
     if (session->loglevel >= 4) {
-      *(session->logfile) << "JTL :: Converting to greyscale";
+      *(session->logfile) << "JTLExt :: Converting to greyscale";
       function_timer.start();
     }
     session->processor->greyscale(rawtile);
@@ -202,7 +202,7 @@ CompressedTile JTL_EXT::getTile(Session *session, int resolution, int tile)
   // Compress to requested output format
   if (rawtile.compressionType == UNCOMPRESSED) {
     if (session->loglevel >= 4) {
-      *(session->logfile) << "JTL :: Encoding UNCOMPRESSED tile";
+      *(session->logfile) << "JTLExt :: Encoding UNCOMPRESSED tile";
       function_timer.start();
     }
     len = compressor->Compress(rawtile);

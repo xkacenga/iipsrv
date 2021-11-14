@@ -84,6 +84,8 @@ Task *Task::factory(const string &t)
     return new LYR;
   else if (type == "deepzoom")
     return new DeepZoom;
+  else if (type == "deepzoomext")
+    return new DeepZoomExt;
   else if (type == "ctw")
     return new CTW;
   else if (type == "col")
@@ -424,7 +426,7 @@ void JTL::run(Session *session, const string &argument)
   this->send(session, resolution, tile);
 }
 
-void JTL_EXT::run(Session *session, const string &argument) {}
+void JTL_Ext::run(Session *session, const string &argument) {}
 
 void SHD::run(Session *session, const string &argument)
 {
