@@ -20,7 +20,7 @@
 
 #include "Task.h" 
 #include "Transforms.h"
-#include <Magick++.h>
+#include <vips/vips8>
 
 #include <cmath>
 #include <sstream>
@@ -30,35 +30,39 @@ using namespace std;
 void JTL_Ext::send(Compressor *compressor, const vector<CompressedTile> &compressedTiles)
 {
   stringstream dataStream;
-
+  
+  char *buffer;
+  size_t bufferSize = 0;
   // Append images vertically if needed
-  if (session->loglevel >= 2) {
-        *(session->logfile) << "JTLExt :: Appending tiles" << endl;
-  }
-
-  Timer appendTimer;
-  appendTimer.start();
-  if (session->loglevel >= 2) {
-        *(session->logfile) << "JTLExt :: Starting append images timer" << endl;
-  }
-
-  vector<Magick::Image> imagesToAppend;
-  Magick::Blob appendedBlob;
   if (compressedTiles.size() > 1) {
-    for (const CompressedTile &compressedTile : compressedTiles) {
-      imagesToAppend.emplace_back(Magick::Blob(compressedTile.rawtile.data, compressedTile.compressedLen));
-    }
     if (session->loglevel >= 2) {
-        *(session->logfile) << "JTLExt :: Emplacing tiles finished in " << appendTimer.getTime() << " milliseconds." << endl;
-  }
-    Magick::Image appended;
-    Magick::appendImages(&appended, imagesToAppend.begin(), imagesToAppend.end(), true);
-    appended.magick("PNG");
-    appended.write(&appendedBlob);
-  }
+          *(session->logfile) << "JTLExt :: Appending tiles" << endl;
+    }
+    Timer appendTimer;
+    appendTimer.start();
+    if (session->loglevel >= 2) {
+          *(session->logfile) << "JTLExt :: Starting append images timer" << endl;
+    }
 
-  if (session->loglevel >= 2) {
-        *(session->logfile) << "JTLExt :: Append images finished in " << appendTimer.getTime() << " milliseconds." << endl;
+    using namespace vips;
+    if (VIPS_INIT("")) {
+          vips_error_exit (NULL);
+    }
+    vector<VImage> imagesToAppend;
+    for (const CompressedTile &tile : compressedTiles) {
+      imagesToAppend.emplace_back(VImage::new_from_buffer(tile.rawtile.data, tile.compressedLen, nullptr, nullptr));
+    }
+    VImage out = imagesToAppend[0];
+    for (int i = 1; i < compressedTiles.size(); i++) {
+      out = out.join(imagesToAppend[i], VIPS_DIRECTION_VERTICAL, nullptr);
+    }
+
+    
+    out.write_to_buffer(".png", (void**) &buffer, &bufferSize, nullptr);
+
+    if (session->loglevel >= 2) {
+          *(session->logfile) << "JTLExt :: Append images finished in " << appendTimer.getTime() << " milliseconds." << endl;
+    }
   }
   
 
@@ -74,13 +78,14 @@ void JTL_Ext::send(Compressor *compressor, const vector<CompressedTile> &compres
     dataStream.write(static_cast<const char *>(compressedTiles[0].rawtile.data), compressedTiles[0].compressedLen);
   } else {
     stringstream header;
-    header << session->response->createHTTPHeader(compressor->getMimeType(), (*session->image)->getTimestamp(), appendedBlob.length());
+    header << session->response->createHTTPHeader(compressor->getMimeType(), (*session->image)->getTimestamp(), bufferSize);
     if (session->out->putStr((const char *)header.str().c_str(), header.tellp()) == -1) {
       if (session->loglevel >= 1) {
         *(session->logfile) << "JTLExt :: Error writing HTTP header" << endl;
       }
     }
-    dataStream.write(static_cast<const char *>(appendedBlob.data()), appendedBlob.length());
+    dataStream.write(static_cast<const char *>(buffer), bufferSize);
+    free(buffer);
   }
   session->out->putStr(dataStream.str().c_str(), dataStream.tellp());
 
