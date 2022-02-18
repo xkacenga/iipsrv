@@ -223,7 +223,9 @@ public:
 
   CompressedTile getTile(Session *session, int resolution, int tile);
 
-  void send(Compressor *compressor, const std::vector<CompressedTile> &compressedTiles);
+  void send(Compressor *compressor,
+            const std::vector<CompressedTile> &compressedTiles,
+            const vector<int> &invalidPathIndices);
 };
 
 /// PNG Tile Command

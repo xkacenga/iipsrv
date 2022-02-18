@@ -28,6 +28,8 @@
 
 #include "Task.h"
 #include "Transforms.h"
+#include "URL.h"
+#include "Environment.h"
 #include <vector>
 #include <string>
 #include <tuple>
@@ -42,6 +44,46 @@ double log2(double max)
 }
 #endif
 
+/**
+ * @brief Holds data required for DeepzoomExt response.
+ *
+ */
+struct DZExtResponseData
+{
+  stringstream &initHeader;
+  string &suffix;
+  bool isFirst;
+  bool isLast;
+  const vector<int> &invalidPathIndices;
+  vector<CompressedTile> &compressedTiles;
+  JTL_Ext &jtl;
+  const string &argument;
+  Compressor *compressor;
+  Timer &commandTimer;
+
+  DZExtResponseData(stringstream &initHeader,
+                    string &suffix,
+                    bool isFirst,
+                    bool isLast,
+                    const vector<int> &invalidPathIndices,
+                    vector<CompressedTile> &compressedTiles,
+                    JTL_Ext &jtl,
+                    const string &argument,
+                    Compressor *compressor,
+                    Timer &command_timer) : initHeader(initHeader),
+                                            suffix(suffix),
+                                            isFirst(isFirst),
+                                            isLast(isLast),
+                                            invalidPathIndices(invalidPathIndices),
+                                            compressedTiles(compressedTiles),
+                                            jtl(jtl),
+                                            argument(argument),
+                                            compressor(compressor),
+                                            commandTimer(commandTimer) {}
+};
+
+void sendExistingFileResponse(Session *session, DZExtResponseData &data);
+void sendMissingFileResponse(Session *session, DZExtResponseData data);
 vector<string> splitArgument(const string &argument);
 
 void DeepZoomExt::run(Session *session, const std::string &argument)
@@ -68,22 +110,26 @@ void DeepZoomExt::run(Session *session, const std::string &argument)
     prefix = argument.substr(0, argument.length() - 4);
   else
     prefix = argument.substr(0, argument.rfind("_files/"));
-    string format = suffix.substr(suffix.find_last_of(".") + 1, suffix.length());
+  string format = suffix.substr(suffix.find_last_of(".") + 1, suffix.length());
 
-    // Set correct compressor
-    if (format == "jpg") {
-      session->view->output_format = JPEG;
-      compressor = session->jpeg;
-    } else if (format == "png") {
-      session->view->output_format = PNG;
-      // Transform all .png images to greyscale
-      session->view->colourspace == GREYSCALE;
-      compressor = session->png;
-    }
+  // Set correct compressor
+  if (format == "jpg")
+  {
+    session->view->output_format = JPEG;
+    compressor = session->jpeg;
+  }
+  else if (format == "png")
+  {
+    session->view->output_format = PNG;
+    // Transform all .png images to greyscale
+    session->view->colourspace == GREYSCALE;
+    compressor = session->png;
+  }
 
   // Get the image file paths from prefix
   vector<string> paths = splitArgument(prefix);
 
+  vector<int> invalidPathIndices;
   vector<CompressedTile> compressedTiles;
   JTL_Ext jtl;
   stringstream initHeader;
@@ -93,125 +139,185 @@ void DeepZoomExt::run(Session *session, const std::string &argument)
 
     // As we don't have an independent FIF request, we need to run it now
     FIF fif;
-    fif.run(session, currentPath);
-
-    IIPImage *currentImage = *(session->image);
-
-    // Get the full image size and the total number of resolutions available
-    unsigned int width = currentImage->getImageWidth();
-    unsigned int height = currentImage->getImageHeight();
-
-    unsigned int tw = currentImage->getTileWidth();
-    unsigned int numResolutions = currentImage->getNumResolutions();
-
-    // DeepZoom does not accept arbitrary numbers of resolutions. The number of levels
-    // is calculated by rounding up the log_2 of the larger of image height and image width;
-    unsigned int dzi_res;
-    unsigned int max = width;
-    if (height > width)
-      max = height;
-    dzi_res = (int)ceil(log2(max));
-
-    if (session->loglevel >= 4)
+    try
     {
-      *(session->logfile) << "DeepZoomExt :: required resolutions : " << dzi_res << ", real: " << numResolutions << endl;
+      fif.run(session, currentPath);
+    }
+    catch (file_error)
+    {
+      invalidPathIndices.push_back(i);
     }
 
-    // DeepZoom clients have 2 phases, the initialization phase where they request
-    // an XML file containing image data and the tile requests themselves.
-    // These 2 phases are handled separately
-    if (suffix == "dzi")
+    if (paths.size() == invalidPathIndices.size()) {
+      throw file_error("All tile sources are missing!");
+    }
+
+    DZExtResponseData data(initHeader, suffix,
+                           i == 0, i == paths.size() - 1,
+                           invalidPathIndices, compressedTiles, jtl,
+                           argument, compressor, command_timer);
+    if (!invalidPathIndices[i])
     {
-
-      if (session->loglevel >= 2)
-        *(session->logfile) << "DeepZoomExt :: DZI header request" << endl;
-
-      if (session->loglevel >= 4)
-      {
-        *(session->logfile) << "DeepZoomExt :: Total resolutions: " << numResolutions << ", image width: " << width
-                            << ", image height: " << height << endl;
-      }
-
-      // Format our output
-      if (i == 0)
-      {
-        initHeader << session->response->createHTTPHeader("xml", currentImage->getTimestamp())
-                   << "<ImageArray xmlns=\"http://rationai.fi.muni.cz/deepzoom/images\">";
-      }
-
-      initHeader << "<Image "
-                 << "TileSize=\"" << tw << "\" Overlap=\"0\" Format=\"jpg\">"
-                 << "<Size Width=\"" << width << "\" Height=\"" << height << "\"/>"
-                 << "</Image>";
-
-      // Send response only after processing all images
-      if (paths.size() - 1 == i)
-      {
-        initHeader << "</ImageArray>";
-        session->out->putStr((const char *)initHeader.str().c_str(), initHeader.tellp());
-        session->response->setImageSent();
-        return;
-      }
+      sendExistingFileResponse(session, data);
     }
     else
     {
-      // Get the tile coordinates. DeepZoom requests are of the form $image_files/r/x_y.jpg
-      // where r is the resolution number and x and y are the tile coordinates
+      sendMissingFileResponse(session, data);
+    }
+  }
+}
 
-      int resolution, x, y;
-      unsigned int n, n1, n2;
+void sendExistingFileResponse(Session *session, DZExtResponseData &data)
+{
+  IIPImage *currentImage = *(session->image);
 
-      // Extract resolution
-      n1 = argument.find_last_of("/");
-      n2 = argument.substr(0, n1).find_last_of("/") + 1;
-      resolution = atoi(argument.substr(n2, n1 - n2).c_str());
+  // Get the full image size and the total number of resolutions available
+  unsigned int width = currentImage->getImageWidth();
+  unsigned int height = currentImage->getImageHeight();
 
-      // Extract tile x,y coordinates
-      n = argument.find_last_of(".") - n1 - 1;
-      suffix = argument.substr(n1 + 1, n);
-      n = suffix.find_first_of("_");
-      x = atoi(suffix.substr(0, n).c_str());
-      y = atoi(suffix.substr(n + 1, suffix.length()).c_str());
+  unsigned int tw = currentImage->getTileWidth();
+  unsigned int numResolutions = currentImage->getNumResolutions();
 
-      // Take into account the extra zoom levels required by the DeepZoom spec
-      resolution = resolution - (dzi_res - numResolutions) - 1;
-      if (resolution < 0)
-        resolution = 0;
-      if ((unsigned int)resolution > numResolutions - 1)
-        resolution = numResolutions - 1;
+  // DeepZoom does not accept arbitrary numbers of resolutions. The number of levels
+  // is calculated by rounding up the log_2 of the larger of image height and image width;
+  unsigned int dzi_res;
+  unsigned int max = width;
+  if (height > width)
+    max = height;
+  dzi_res = (int)ceil(log2(max));
 
+  if (session->loglevel >= 4)
+  {
+    *(session->logfile) << "DeepZoomExt :: required resolutions : " << dzi_res << ", real: " << numResolutions << endl;
+  }
+
+  // DeepZoom clients have 2 phases, the initialization phase where they request
+  // an XML file containing image data and the tile requests themselves.
+  // These 2 phases are handled separately
+  if (data.suffix == "dzi")
+  {
+
+    if (session->loglevel >= 2)
+      *(session->logfile) << "DeepZoomExt :: DZI header request" << endl;
+
+    if (session->loglevel >= 4)
+    {
+      *(session->logfile) << "DeepZoomExt :: Total resolutions: " << numResolutions << ", image width: " << width
+                          << ", image height: " << height << endl;
+    }
+
+    // Format our output
+    if (data.isFirst)
+    {
+      data.initHeader << session->response->createHTTPHeader("xml", "")
+                      << "<ImageArray xmlns=\"http://rationai.fi.muni.cz/deepzoom/images\">";
+    }
+
+    data.initHeader << "<Image "
+                    << "TileSize=\"" << tw << "\" Overlap=\"0\" Format=\"png\">"
+                    << "<Size Width=\"" << width << "\" Height=\"" << height << "\"/>"
+                    << "</Image>";
+
+    // Send response only after processing all images
+    if (data.isLast)
+    {
+      data.initHeader << "</ImageArray>";
+      session->out->putStr((const char *)data.initHeader.str().c_str(), data.initHeader.tellp());
+      session->response->setImageSent();
+      return;
+    }
+  }
+  else
+  {
+    // Get the tile coordinates. DeepZoom requests are of the form $image_files/r/x_y.jpg
+    // where r is the resolution number and x and y are the tile coordinates
+
+    int resolution, x, y;
+    unsigned int n, n1, n2;
+
+    // Extract resolution
+    n1 = data.argument.find_last_of("/");
+    n2 = data.argument.substr(0, n1).find_last_of("/") + 1;
+    resolution = atoi(data.argument.substr(n2, n1 - n2).c_str());
+
+    // Extract tile x,y coordinates
+    n = data.argument.find_last_of(".") - n1 - 1;
+    data.suffix = data.argument.substr(n1 + 1, n);
+    n = data.suffix.find_first_of("_");
+    x = atoi(data.suffix.substr(0, n).c_str());
+    y = atoi(data.suffix.substr(n + 1, data.suffix.length()).c_str());
+
+    // Take into account the extra zoom levels required by the DeepZoom spec
+    resolution = resolution - (dzi_res - numResolutions) - 1;
+    if (resolution < 0)
+      resolution = 0;
+    if ((unsigned int)resolution > numResolutions - 1)
+      resolution = numResolutions - 1;
+
+    if (session->loglevel >= 2)
+    {
+      *(session->logfile) << "DeepZoomExt :: Tile request for resolution: "
+                          << resolution << " at x: " << x << ", y: " << y << endl;
+    }
+
+    // Get the width and height for the requested resolution
+    width = (*session->image)->getImageWidth(numResolutions - resolution - 1);
+    height = (*session->image)->getImageHeight(numResolutions - resolution - 1);
+
+    // Get the width of the tiles and calculate the number
+    // of tiles in each direction
+    unsigned int rem_x = width % tw;
+    unsigned int ntlx = (width / tw) + (rem_x == 0 ? 0 : 1);
+
+    // Calculate the tile index for this resolution from our x, y
+    unsigned int tile = y * ntlx + x;
+
+    // Push tile from JTL.getTile() to our tiles vector
+    data.compressedTiles.push_back(data.jtl.getTile(session, resolution, tile));
+
+    // Send appended tile(s) after processing all images
+    if (data.isLast)
+    {
+      data.jtl.send(data.compressor, data.compressedTiles, data.invalidPathIndices);
+
+      // Total DeepZoom response time
       if (session->loglevel >= 2)
       {
-        *(session->logfile) << "DeepZoomExt :: Tile request for resolution: "
-                            << resolution << " at x: " << x << ", y: " << y << endl;
+        *(session->logfile) << "DeepZoomExt :: Total command time " << data.commandTimer.getTime() << " microseconds" << endl;
       }
+    }
+  }
+}
 
-      // Get the width and height for the requested resolution
-      width = (*session->image)->getImageWidth(numResolutions - resolution - 1);
-      height = (*session->image)->getImageHeight(numResolutions - resolution - 1);
+void sendMissingFileResponse(Session *session, DZExtResponseData data)
+{
+  if (data.suffix == "dzi")
+  {
+    if (data.isFirst)
+    {
+      data.initHeader << session->response->createHTTPHeader("xml", "")
+                      << "<ImageArray xmlns=\"http://rationai.fi.muni.cz/deepzoom/images\">";
+    }
 
-      // Get the width of the tiles and calculate the number
-      // of tiles in each direction
-      unsigned int rem_x = width % tw;
-      unsigned int ntlx = (width / tw) + (rem_x == 0 ? 0 : 1);
+    data.initHeader << "<Image "
+                    << "TileSize=\"" << 0 << "\" Overlap=\"0\" Format=\"png\">"
+                    << "<Size Width=\"" << 0 << "\" Height=\"" << 0 << "\"/>"
+                    << "</Image>";
 
-      // Calculate the tile index for this resolution from our x, y
-      unsigned int tile = y * ntlx + x;
-
-      // Push tile from JTL.getTile() to our tiles vector
-      compressedTiles.push_back(jtl.getTile(session, resolution, tile));
-
-      // Send appended tile(s) after processing all images
-      if (i == paths.size() - 1)
-      {
-        jtl.send(compressor, compressedTiles);
-
-        // Total DeepZoom response time
-        if (session->loglevel >= 2)
-        {
-          *(session->logfile) << "DeepZoomExt :: Total command time " << command_timer.getTime() << " microseconds" << endl;
-        }
-      }
+    // Send response only after processing all images
+    if (data.isLast)
+    {
+      data.initHeader << "</ImageArray>";
+      session->out->putStr((const char *)data.initHeader.str().c_str(), data.initHeader.tellp());
+      session->response->setImageSent();
+      return;
+    }
+  }
+  else
+  {
+    if (data.isLast)
+    {
+      data.jtl.send(data.compressor, data.compressedTiles, data.invalidPathIndices);
     }
   }
 }

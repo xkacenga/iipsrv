@@ -27,21 +27,26 @@
 
 using namespace std;
 
-void JTL_Ext::send(Compressor *compressor, const vector<CompressedTile> &compressedTiles)
+void JTL_Ext::send(Compressor *compressor,
+                   const vector<CompressedTile> &compressedTiles,
+                   const vector<int> &invalidPathIndices)
 {
   stringstream dataStream;
-  
+
   char *buffer;
   size_t bufferSize = 0;
   // Append images vertically if needed
-  if (compressedTiles.size() > 1) {
-    if (session->loglevel >= 2) {
-          *(session->logfile) << "JTLExt :: Appending tiles" << endl;
+  if (compressedTiles.size() > 1)
+  {
+    if (session->loglevel >= 2)
+    {
+      *(session->logfile) << "JTLExt :: Appending tiles" << endl;
     }
     Timer appendTimer;
     appendTimer.start();
-    if (session->loglevel >= 2) {
-          *(session->logfile) << "JTLExt :: Starting append images timer" << endl;
+    if (session->loglevel >= 2)
+    {
+      *(session->logfile) << "JTLExt :: Starting append images timer" << endl;
     }
 
     using namespace vips;
@@ -61,13 +66,12 @@ void JTL_Ext::send(Compressor *compressor, const vector<CompressedTile> &compres
     string format = compressionType == JPEG ? ".jpg" : "png";
     
     
-    out.write_to_buffer(format, (void**) &buffer, &bufferSize, nullptr);
+    out.write_to_buffer(format.c_str(), (void**) &buffer, &bufferSize, nullptr);
 
     if (session->loglevel >= 2) {
           *(session->logfile) << "JTLExt :: Append images finished in " << appendTimer.getTime() << " milliseconds." << endl;
     }
   }
-  
 
   // Send image data
   if (compressedTiles.size() == 1) {
