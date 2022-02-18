@@ -225,7 +225,7 @@ public:
 
   void send(Compressor *compressor,
             const std::vector<CompressedTile> &compressedTiles,
-            const vector<int> &invalidPathIndices);
+            const std::vector<int> &invalidPathIndices);
 };
 
 /// PNG Tile Command

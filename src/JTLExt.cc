@@ -24,6 +24,7 @@
 
 #include <cmath>
 #include <sstream>
+#include <algorithm>
 
 using namespace std;
 
@@ -53,10 +54,25 @@ void JTL_Ext::send(Compressor *compressor,
     if (VIPS_INIT("")) {
           vips_error_exit (NULL);
     }
+
+    // Find width and height of tile
+    int tileWidth = compressedTiles[0].rawtile.width;
+    int tileHeight = compressedTiles[0].rawtile.height;
+
     vector<VImage> imagesToAppend;
-    for (const CompressedTile &tile : compressedTiles) {
-      imagesToAppend.emplace_back(VImage::new_from_buffer(tile.rawtile.data, tile.compressedLen, nullptr, nullptr));
+    for (int i = 0; i < compressedTiles.size(); i++)
+    {
+      // If tile source exists
+      if (find(invalidPathIndices.begin(), invalidPathIndices.end(), i) != invalidPathIndices.end())
+      {
+        imagesToAppend.emplace_back(VImage::new_from_buffer(compressedTiles[i].rawtile.data,
+                                                            compressedTiles[i].compressedLen,
+                                                            nullptr, nullptr));
+      } else {
+        imagesToAppend.emplace_back(VImage::black(tileWidth, tileHeight));
+      }
     }
+
     VImage out = imagesToAppend[0];
     for (int i = 1; i < compressedTiles.size(); i++) {
       out = out.join(imagesToAppend[i], VIPS_DIRECTION_VERTICAL, nullptr);
