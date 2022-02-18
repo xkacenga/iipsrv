@@ -57,8 +57,11 @@ void JTL_Ext::send(Compressor *compressor, const vector<CompressedTile> &compres
       out = out.join(imagesToAppend[i], VIPS_DIRECTION_VERTICAL, nullptr);
     }
 
+    CompressionType compressionType = compressor->getCompressionType();
+    string format = compressionType == JPEG ? ".jpg" : "png";
     
-    out.write_to_buffer(".png", (void**) &buffer, &bufferSize, nullptr);
+    
+    out.write_to_buffer(format, (void**) &buffer, &bufferSize, nullptr);
 
     if (session->loglevel >= 2) {
           *(session->logfile) << "JTLExt :: Append images finished in " << appendTimer.getTime() << " milliseconds." << endl;
@@ -125,9 +128,7 @@ CompressedTile JTL_Ext::getTile(Session *session, int resolution, int tile)
   // Determine which output encoding to use
   CompressionType ct = session->view->output_format;
   Compressor *compressor;
-  if (session->view->output_format == JPEG)
-    compressor = session->jpeg;
-  else if (session->view->output_format == PNG)
+  if (session->view->output_format == PNG)
     compressor = session->png;
   else
     compressor = session->jpeg;
