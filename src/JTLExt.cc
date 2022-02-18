@@ -28,16 +28,19 @@
 
 using namespace std;
 
+bool contains(const vector<int> &vector, int element);
+
 void JTL_Ext::send(Compressor *compressor,
                    const vector<CompressedTile> &compressedTiles,
                    const vector<int> &invalidPathIndices)
 {
   stringstream dataStream;
+  int tileCount = compressedTiles.size() + invalidPathIndices.size();
 
   char *buffer;
   size_t bufferSize = 0;
   // Append images vertically if needed
-  if (compressedTiles.size() > 1)
+  if (tileCount > 1)
   {
     if (session->loglevel >= 2)
     {
@@ -60,48 +63,49 @@ void JTL_Ext::send(Compressor *compressor,
     int tileHeight = compressedTiles[0].rawtile.height;
 
     vector<VImage> imagesToAppend;
-    for (int i = 0; i < compressedTiles.size(); i++)
+    int compressedI = 0;
+    for (int i = 0; i < tileCount; i++)
     {
-      // If tile source exists
-      if (find(invalidPathIndices.begin(), invalidPathIndices.end(), i) != invalidPathIndices.end())
+      if (!contains(invalidPathIndices, i))
       {
-        imagesToAppend.emplace_back(VImage::new_from_buffer(compressedTiles[i].rawtile.data,
-                                                            compressedTiles[i].compressedLen,
+        imagesToAppend.emplace_back(VImage::new_from_buffer(compressedTiles[compressedI].rawtile.data,
+                                                            compressedTiles[compressedI].compressedLen,
                                                             nullptr, nullptr));
+        compressedI++;
       } else {
+        *(session->logfile) << "JTLExt :: black" << endl;
         imagesToAppend.emplace_back(VImage::black(tileWidth, tileHeight));
       }
     }
-
+    *(session->logfile) << "JTLExt :: before" << endl;
     VImage out = imagesToAppend[0];
-    for (int i = 1; i < compressedTiles.size(); i++) {
+    for (int i = 1; i < tileCount; i++) {
       out = out.join(imagesToAppend[i], VIPS_DIRECTION_VERTICAL, nullptr);
     }
-
     CompressionType compressionType = compressor->getCompressionType();
-    string format = compressionType == JPEG ? ".jpg" : "png";
-    
-    
+    string format = compressionType == JPEG ? ".jpg" : ".png";
+    *(session->logfile) << "JTLExt :: middle" << endl;
     out.write_to_buffer(format.c_str(), (void**) &buffer, &bufferSize, nullptr);
-
+    *(session->logfile) << "JTLExt :: after" << endl;
     if (session->loglevel >= 2) {
           *(session->logfile) << "JTLExt :: Append images finished in " << appendTimer.getTime() << " milliseconds." << endl;
     }
   }
 
   // Send image data
-  if (compressedTiles.size() == 1) {
+  if (compressedTiles.size() == 1 && !invalidPathIndices.size()) {
     stringstream header;
-    header << session->response->createHTTPHeader(compressor->getMimeType(), (*session->image)->getTimestamp(), compressedTiles[0].compressedLen);
+    header << session->response->createHTTPHeader(compressor->getMimeType(), "", compressedTiles[0].compressedLen);
     if (session->out->putStr((const char *)header.str().c_str(), header.tellp()) == -1) {
       if (session->loglevel >= 1) {
         *(session->logfile) << "JTLExt :: Error writing HTTP header" << endl;
       }
     }
-    dataStream.write(static_cast<const char *>(compressedTiles[0].rawtile.data), compressedTiles[0].compressedLen);
+    dataStream.write(static_cast<const char *>(compressedTiles[0].rawtile.data),
+                     compressedTiles[0].compressedLen);
   } else {
     stringstream header;
-    header << session->response->createHTTPHeader(compressor->getMimeType(), (*session->image)->getTimestamp(), bufferSize);
+    header << session->response->createHTTPHeader(compressor->getMimeType(), "", bufferSize);
     if (session->out->putStr((const char *)header.str().c_str(), header.tellp()) == -1) {
       if (session->loglevel >= 1) {
         *(session->logfile) << "JTLExt :: Error writing HTTP header" << endl;
@@ -117,9 +121,18 @@ void JTL_Ext::send(Compressor *compressor,
       *(session->logfile) << "JTLExt :: Error flushing tile" << endl;
     }
   }
-
   // Inform our response object that we have sent something to the client
   session->response->setImageSent();
+}
+
+bool contains(const vector<int> &vector, int element)
+{
+    bool result = false;
+    if( find(vector.begin(), vector.end(), element) != vector.end() )
+    {
+        result = true;
+    }
+    return result;
 }
 
 CompressedTile JTL_Ext::getTile(Session *session, int resolution, int tile)

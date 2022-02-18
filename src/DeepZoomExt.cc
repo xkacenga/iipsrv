@@ -33,6 +33,7 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include <algorithm>
 
 using namespace std;
 
@@ -59,7 +60,6 @@ struct DZExtResponseData
   JTL_Ext &jtl;
   const string &argument;
   Compressor *compressor;
-  Timer &commandTimer;
 
   DZExtResponseData(stringstream &initHeader,
                     string &suffix,
@@ -69,19 +69,18 @@ struct DZExtResponseData
                     vector<CompressedTile> &compressedTiles,
                     JTL_Ext &jtl,
                     const string &argument,
-                    Compressor *compressor,
-                    Timer &command_timer) : initHeader(initHeader),
-                                            suffix(suffix),
-                                            isFirst(isFirst),
-                                            isLast(isLast),
-                                            invalidPathIndices(invalidPathIndices),
-                                            compressedTiles(compressedTiles),
-                                            jtl(jtl),
-                                            argument(argument),
-                                            compressor(compressor),
-                                            commandTimer(commandTimer) {}
+                    Compressor *compressor) : initHeader(initHeader),
+                                              suffix(suffix),
+                                              isFirst(isFirst),
+                                              isLast(isLast),
+                                              invalidPathIndices(invalidPathIndices),
+                                              compressedTiles(compressedTiles),
+                                              jtl(jtl),
+                                              argument(argument),
+                                              compressor(compressor) {}
 };
 
+bool pathExists(const string &path);
 void sendExistingFileResponse(Session *session, DZExtResponseData &data);
 void sendMissingFileResponse(Session *session, DZExtResponseData data);
 vector<string> splitArgument(const string &argument);
@@ -136,39 +135,58 @@ void DeepZoomExt::run(Session *session, const std::string &argument)
   for (int i = 0; i < paths.size(); i++)
   {
     const string &currentPath = paths[i];
-
-    // As we don't have an independent FIF request, we need to run it now
     FIF fif;
-    try
-    {
-      fif.run(session, currentPath);
-    }
-    catch (file_error)
+
+    if (!pathExists(currentPath))
     {
       invalidPathIndices.push_back(i);
     }
+    else
+    {
+      fif.run(session, currentPath);
+    }
 
-    if (paths.size() == invalidPathIndices.size()) {
+    if (paths.size() == invalidPathIndices.size())
+    {
       throw file_error("All tile sources are missing!");
     }
 
     DZExtResponseData data(initHeader, suffix,
                            i == 0, i == paths.size() - 1,
                            invalidPathIndices, compressedTiles, jtl,
-                           argument, compressor, command_timer);
-    if (!invalidPathIndices[i])
-    {
-      sendExistingFileResponse(session, data);
-    }
-    else
+                           argument, compressor);
+
+    if (!invalidPathIndices.empty() && invalidPathIndices.back() == i)
     {
       sendMissingFileResponse(session, data);
     }
+    else
+    {
+      sendExistingFileResponse(session, data);
+    }
   }
+  if (session->loglevel >= 2)
+  {
+    *(session->logfile) << "DeepZoomExt :: Total command time " << command_timer.getTime() << " microseconds" << endl;
+  }
+}
+
+bool pathExists(const string &path)
+{
+  URL url(path);
+  string decodedPath = url.decode();
+  unsigned int n;
+  while ((n = decodedPath.find("../")) < decodedPath.length())
+    decodedPath.erase(n, 3);
+  string finalPath = Environment::getFileSystemPrefix() + decodedPath + Environment::getFileSystemSuffix();
+  std::ifstream file(finalPath);
+  return file.good();
 }
 
 void sendExistingFileResponse(Session *session, DZExtResponseData &data)
 {
+  if (session->loglevel >= 3)
+    (*session->logfile) << "DeepZoomExt sending existing file response" << endl;
   IIPImage *currentImage = *(session->image);
 
   // Get the full image size and the total number of resolutions available
@@ -214,7 +232,7 @@ void sendExistingFileResponse(Session *session, DZExtResponseData &data)
     }
 
     data.initHeader << "<Image "
-                    << "TileSize=\"" << tw << "\" Overlap=\"0\" Format=\"png\">"
+                    << "TileSize=\"" << tw << "\" Overlap=\"0\" Format=\"jpg\">"
                     << "<Size Width=\"" << width << "\" Height=\"" << height << "\"/>"
                     << "</Image>";
 
@@ -279,18 +297,14 @@ void sendExistingFileResponse(Session *session, DZExtResponseData &data)
     if (data.isLast)
     {
       data.jtl.send(data.compressor, data.compressedTiles, data.invalidPathIndices);
-
-      // Total DeepZoom response time
-      if (session->loglevel >= 2)
-      {
-        *(session->logfile) << "DeepZoomExt :: Total command time " << data.commandTimer.getTime() << " microseconds" << endl;
-      }
     }
   }
 }
 
 void sendMissingFileResponse(Session *session, DZExtResponseData data)
 {
+  if (session->loglevel >= 3)
+    (*session->logfile) << "DeepZoomExt sending missing file response" << endl;
   if (data.suffix == "dzi")
   {
     if (data.isFirst)
@@ -300,7 +314,7 @@ void sendMissingFileResponse(Session *session, DZExtResponseData data)
     }
 
     data.initHeader << "<Image "
-                    << "TileSize=\"" << 0 << "\" Overlap=\"0\" Format=\"png\">"
+                    << "TileSize=\"" << 0 << "\" Overlap=\"0\" Format=\"jpg\">"
                     << "<Size Width=\"" << 0 << "\" Height=\"" << 0 << "\"/>"
                     << "</Image>";
 
@@ -310,7 +324,6 @@ void sendMissingFileResponse(Session *session, DZExtResponseData data)
       data.initHeader << "</ImageArray>";
       session->out->putStr((const char *)data.initHeader.str().c_str(), data.initHeader.tellp());
       session->response->setImageSent();
-      return;
     }
   }
   else

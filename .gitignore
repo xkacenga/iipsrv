@@ -21,3 +21,4 @@ libtool
 fcgi/libfcgi/.deps/
 .vscode/c_cpp_properties.json
 .vscode/settings.json
+src/updateServer.sh
