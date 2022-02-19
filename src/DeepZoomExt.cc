@@ -110,19 +110,21 @@ void DeepZoomExt::run(Session *session, const std::string &argument)
   else
     prefix = argument.substr(0, argument.rfind("_files/"));
   string format = suffix.substr(suffix.find_last_of(".") + 1, suffix.length());
-
+  
   // Set correct compressor
-  if (format == "jpg")
+  if (format.rfind("jpg", 0) == 0)
   {
     session->view->output_format = JPEG;
     compressor = session->jpeg;
   }
-  else if (format == "png")
+  else if (format.rfind("png", 0) == 0)
   {
     session->view->output_format = PNG;
-    // Transform all .png images to greyscale
-    session->view->colourspace == GREYSCALE;
     compressor = session->png;
+  }
+
+  if (format.find("/greyscale") != string::npos) {
+    session->view->colourspace == GREYSCALE;
   }
 
   // Get the image file paths from prefix
@@ -186,7 +188,7 @@ bool pathExists(const string &path)
 void sendExistingFileResponse(Session *session, DZExtResponseData &data)
 {
   if (session->loglevel >= 3)
-    (*session->logfile) << "DeepZoomExt sending existing file response" << endl;
+    (*session->logfile) << "DeepZoomExt :: sending existing file response" << endl;
   IIPImage *currentImage = *(session->image);
 
   // Get the full image size and the total number of resolutions available
@@ -304,7 +306,7 @@ void sendExistingFileResponse(Session *session, DZExtResponseData &data)
 void sendMissingFileResponse(Session *session, DZExtResponseData data)
 {
   if (session->loglevel >= 3)
-    (*session->logfile) << "DeepZoomExt sending missing file response" << endl;
+    (*session->logfile) << "DeepZoomExt :: sending missing file response" << endl;
   if (data.suffix == "dzi")
   {
     if (data.isFirst)
