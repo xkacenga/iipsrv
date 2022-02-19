@@ -234,7 +234,7 @@ CompressedTile JTL_Ext::getTile(Session *session, int resolution, int tile)
       *(session->logfile) << " in " << function_timer.getTime() << " microseconds" << endl;
     }
   }
-
+  
   // Convert to greyscale if requested
   if ((*session->image)->getColourSpace() == sRGB && session->view->colourspace == GREYSCALE) {
     if (session->loglevel >= 4) {

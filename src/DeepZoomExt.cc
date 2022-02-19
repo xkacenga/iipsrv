@@ -124,8 +124,9 @@ void DeepZoomExt::run(Session *session, const std::string &argument)
   }
 
   if (format.find("/greyscale") != string::npos) {
-    session->view->colourspace == GREYSCALE;
+    session->view->colourspace = GREYSCALE;
   }
+
 
   // Get the image file paths from prefix
   vector<string> paths = splitArgument(prefix);
