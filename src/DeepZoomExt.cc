@@ -95,22 +95,32 @@ void DeepZoomExt::run(Session *session, const std::string &argument)
   if (session->loglevel >= 2)
     command_timer.start();
 
+  // Process /greyscale if there is any, and strip the argument of it
+  int greyscalePos = argument.find("/greyscale");
+  string strippedArgument = argument;
+  if (greyscalePos != string::npos)
+  {
+    strippedArgument = argument.substr(0, greyscalePos);
+    session->view->colourspace = GREYSCALE;
+  }
+
   // A DeepZoom request consists of 2 types of request. The first for the .dzi xml file
   // containing image metadata and the second of the form _files/r/x_y.jpg for the tiles
   // themselves where r is the resolution number and x and y are the tile coordinates
   // starting from the bottom left.
+  
 
   string prefix, suffix;
-  suffix = argument.substr(argument.find_last_of(".") + 1, argument.length());
+  suffix = strippedArgument.substr(argument.find_last_of(".") + 1, argument.length());
 
   // We need to extract the image path, which is not always the same
   Compressor *compressor = nullptr;
   if (suffix == "dzi")
-    prefix = argument.substr(0, argument.length() - 4);
+    prefix = strippedArgument.substr(0, argument.length() - 4);
   else
-    prefix = argument.substr(0, argument.rfind("_files/"));
+    prefix = strippedArgument.substr(0, argument.rfind("_files/"));
   string format = suffix.substr(suffix.find_last_of(".") + 1, suffix.length());
-  
+
   // Set correct compressor
   if (format.rfind("jpg", 0) == 0)
   {
@@ -122,11 +132,6 @@ void DeepZoomExt::run(Session *session, const std::string &argument)
     session->view->output_format = PNG;
     compressor = session->png;
   }
-
-  if (format.find("/greyscale") != string::npos) {
-    session->view->colourspace = GREYSCALE;
-  }
-
 
   // Get the image file paths from prefix
   vector<string> paths = splitArgument(prefix);
@@ -157,7 +162,7 @@ void DeepZoomExt::run(Session *session, const std::string &argument)
     DZExtResponseData data(initHeader, suffix,
                            i == 0, i == paths.size() - 1,
                            invalidPathIndices, compressedTiles, jtl,
-                           argument, compressor);
+                           strippedArgument, compressor);
 
     if (!invalidPathIndices.empty() && invalidPathIndices.back() == i)
     {
