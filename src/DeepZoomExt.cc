@@ -95,7 +95,7 @@ void DeepZoomExt::run(Session *session, const std::string &argument)
   if (session->loglevel >= 2)
     command_timer.start();
 
-  // Process /greyscale if there is any, and strip the argument of it
+  // Process /greyscale if there is any, and remove it from the argument.
   int greyscalePos = argument.find("/greyscale");
   string strippedArgument = argument;
   if (greyscalePos != string::npos)
