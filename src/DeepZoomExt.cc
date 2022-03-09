@@ -24,12 +24,13 @@
     Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 */
 
-#include <cmath>
-
 #include "Task.h"
 #include "Transforms.h"
 #include "URL.h"
 #include "Environment.h"
+#include "Utils.h"
+
+#include <cmath>
 #include <vector>
 #include <string>
 #include <tuple>
@@ -83,7 +84,6 @@ struct DZExtResponseData
 bool pathExists(const string &path);
 void sendExistingFileResponse(Session *session, DZExtResponseData &data);
 void sendMissingFileResponse(Session *session, DZExtResponseData data);
-vector<string> splitArgument(const string &argument);
 
 void DeepZoomExt::run(Session *session, const std::string &argument)
 {
@@ -134,7 +134,7 @@ void DeepZoomExt::run(Session *session, const std::string &argument)
   }
 
   // Get the image file paths from prefix
-  vector<string> paths = splitArgument(prefix);
+  vector<string> paths = Utils::split(prefix, ",");
 
   vector<int> invalidPathIndices;
   vector<CompressedTile> compressedTiles;
@@ -341,18 +341,4 @@ void sendMissingFileResponse(Session *session, DZExtResponseData data)
       data.jtl.send(data.compressor, data.compressedTiles, data.invalidPathIndices);
     }
   }
-}
-
-vector<string> splitArgument(const string &argument)
-{
-  using namespace std;
-
-  istringstream argStream(argument);
-  vector<string> filePaths;
-  string token;
-  while (getline(argStream, token, ','))
-  {
-    filePaths.push_back(token);
-  }
-  return filePaths;
 }

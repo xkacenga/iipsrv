@@ -24,6 +24,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <pqxx/pqxx>
 
 #include "IIPImage.h"
 #include "IIPResponse.h"
@@ -69,6 +70,8 @@ struct Session
 
   imageCacheMapType *imageCache;
   Cache *tileCache;
+
+  pqxx::connection *connection;
 
 #ifdef DEBUG
   FileWriter *out;
@@ -333,6 +336,17 @@ class DeepZoomExt : public Task
 {
 public:
   void run(Session *session, const std::string &argument);
+};
+
+/// Annotation Request Command
+class Annotation : public Task
+{
+public:
+  void run(Session *session, const std::string &argument);
+  
+  void getList(Session *session, const std::string &tissuePath);
+  void save(Session *session);
+  void load(Session *session, const std::vector<int> &annotationIds);
 };
 
 /// IIIF Command

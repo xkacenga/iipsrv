@@ -37,6 +37,7 @@
 #include "Environment.h"
 #include "Writer.h"
 #include "Logger.h"
+#include "PostProcessor.h"
 
 #ifdef HAVE_MEMCACHED
 #ifdef WIN32
@@ -541,6 +542,28 @@ int main(int argc, char *argv[])
   tc = &tileCache;
   Task *task = NULL;
 
+  // Connect to annotations database and prepare SQL statements
+  stringstream dbString;
+  dbString << "dbname = " << Environment::getAnnotDbName()
+           << " user = " << Environment::getAnnotUser()
+           << " password = " << Environment::getAnnotUserPassword()
+           << " hostaddr = " << Environment::getAnnotHostAdress()
+           << " port = " << Environment::getAnnotPort();
+  pqxx::connection connection(dbString.str());
+
+  string getListSQL = "SELECT a.id, a.path \
+                       FROM tissues AS t INNER JOIN annotations AS a \
+                       ON t.id = a.tissue_id \
+                       WHERE t.path = $1";
+
+  connection.prepare("getList", getListSQL);
+
+  string sendSQL = "SELECT path \
+                    FROM annotations \
+                    WHERE id = $1";
+
+  connection.prepare("load", sendSQL);
+
   /****************
     Main FCGI loop
   ****************/
@@ -601,6 +624,7 @@ int main(int argc, char *argv[])
       session.logfile = &logfile;
       session.imageCache = &imageCache;
       session.tileCache = &tileCache;
+      session.connection = &connection;
       session.out = &writer;
       session.watermark = &watermark;
       session.headers.clear();
@@ -655,25 +679,10 @@ int main(int argc, char *argv[])
         request_string = (header != NULL) ? header : "";
       }
 
-      // Try to get request string using POST
-      // inspired by http://chriswu.me/blog/getting-request-uri-and-content-in-c-plus-plus-fcgi/
-      if (request_string.empty()) {
-        if (loglevel >= 2) {
-          logfile << "Trying to process POST request" << endl;
-        }
-        char *contentLengthString = FCGX_GetParam("CONTENT_LENGTH", request.envp);
-        int contentLength;
-        if (contentLengthString) {
-          contentLength = atoi(contentLengthString);
-        } else {
-          contentLength = 0;
-        }
-        char *contentBuffer = new char[contentLength];
-        FCGX_GetStr(contentBuffer, contentLength, request.in);
-
-        string content(contentBuffer, contentLength);
-        delete [] contentBuffer;
-        request_string = content;
+      if (request_string.empty())
+      {
+        PostProcessor postProcessor(loglevel, &logfile);
+        request_string = postProcessor.process(request);
       }
 
       // Check that we actually have a request string. If not, just show server home page
@@ -1021,6 +1030,7 @@ int main(int argc, char *argv[])
 
     ///////// End of FCGI_ACCEPT while loop or for loop in debug mode //////////
   }
+  connection.disconnect();
 
   if (loglevel >= 1)
   {
@@ -1030,4 +1040,34 @@ int main(int argc, char *argv[])
   }
 
   return (0);
+}
+
+string processPostRequest(const FCGX_Request &request) {
+  if (loglevel >= 2)
+        {
+          logfile << "Processing POST request" << endl;
+        }
+        char *contentLengthString = FCGX_GetParam("CONTENT_LENGTH", request.envp);
+        int contentLength;
+        if (contentLengthString)
+        {
+          contentLength = atoi(contentLengthString);
+        }
+        else
+        {
+          contentLength = 0;
+        }
+        char *contentBuffer = new char[contentLength];
+        FCGX_GetStr(contentBuffer, contentLength, request.in);
+        string content(contentBuffer, contentLength);
+
+        char *contentTypeString = FCGX_GetParam("CONTENT_TYPE", request.envp);
+        string contentType(contentTypeString);
+        if (contentType.find("multipart") != string::npos)
+        {
+          logfile << "boundary: " << contentType << endl;
+          logfile << "body:" << endl << content << endl;
+        }
+        delete[] contentBuffer;
+        return content;
 }

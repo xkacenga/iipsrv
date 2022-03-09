@@ -28,6 +28,9 @@ endif
 EXTRA_iipsrv_fcgi_SOURCES = DSOImage.h DSOImage.cc KakaduImage.h KakaduImage.cc Main.cc OpenJPEGImage.h OpenJPEGImage.cc PNGCompressor.h PNGCompressor.cc
 
 iipsrv_fcgi_SOURCES = \
+			Annotation.cc \
+			PostProcessor.h \
+			PostProcessor.cc \
 			IIPImage.h \
 			IIPImage.cc \
 			TPTImage.h \
@@ -49,6 +52,7 @@ iipsrv_fcgi_SOURCES = \
 			Transforms.cc \
 			Environment.h \
 			URL.h \
+			Utils.h \
 			Writer.h \
 			Task.h \
 			Task.cc \

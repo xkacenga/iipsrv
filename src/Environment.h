@@ -49,6 +49,15 @@
 #define KAKADU_READMODE 0
 #define IIIF_VERSION 2
 
+// Annotation database stuff
+#define ANNOT_DB_NAME ""
+#define ANNOT_USER ""
+#define ANNOT_USER_PASSWORD ""
+#define ANNOT_HOST_ADDRESS ""
+#define ANNOT_PORT "5432"
+
+#define ANNOT_FOLDER "" // has to be an absolute path
+
 
 #include <string>
 
@@ -327,6 +336,41 @@ class Environment {
     return version;
   }
 
+  static std::string getAnnotDbName(){
+    char* envpara = getenv( "ANNOT_DB_NAME" );
+    if( envpara ) return std::string( envpara );
+    else return ANNOT_DB_NAME;
+  }
+
+  static std::string getAnnotUser(){
+    char* envpara = getenv( "ANNOT_USER" );
+    if( envpara ) return std::string( envpara );
+    else return ANNOT_USER;
+  }
+
+  static std::string getAnnotUserPassword(){
+    char* envpara = getenv( "ANNOT_USER_PASSWORD" );
+    if( envpara ) return std::string( envpara );
+    else return ANNOT_USER_PASSWORD;
+  }
+
+  static std::string getAnnotHostAdress(){
+    char* envpara = getenv( "ANNOT_HOST_ADDRESS" );
+    if( envpara ) return std::string( envpara );
+    else return ANNOT_HOST_ADDRESS;
+  }
+
+  static std::string getAnnotPort(){
+    char* envpara = getenv( "ANNOT_PORT" );
+    if( envpara ) return std::string( envpara );
+    else return ANNOT_PORT;
+  }
+
+  static std::string getAnnotFolder(){
+    char* envpara = getenv( "ANNOT_FOLDER" );
+    if( envpara ) return std::string( envpara );
+    else return ANNOT_FOLDER;
+  }
 
 };
 
