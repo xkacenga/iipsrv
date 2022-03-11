@@ -3,6 +3,7 @@
 #include "Utils.h"
 
 #include <cstdlib>
+#include <cstdio>
 #include <fstream>
 #include <algorithm>
 
@@ -42,6 +43,10 @@ void Annotation::run(Session *session, const string &argument)
     {
         vector<string> splitArgs = Utils::split(args, ",", 3);
         save(session, splitArgs[0], splitArgs[1], splitArgs[2]);
+    }
+    else if (command == "remove")
+    {
+        remove(session, stoi(args));
     }
 
     if (session->loglevel >= 2)
@@ -136,12 +141,39 @@ void Annotation::save(Session *session, const string &tissuePath,
     string absJsonPath = annotFilePrefix + newJsonName;
 
     Utils::executeTransaction(
-        session, "insertAnnotation", newJsonName, absJsonPath, tissueId);
+        session, "insertAnnotation", jsonName + ".json", absJsonPath, tissueId);
     saveJsonFile(session, absJsonPath, jsonString);
+
+    Json::Value responseRoot;
+    responseRoot["success"] = true;
+    sendJsonResponse(session, responseRoot);
     return;
 }
 
-void saveJsonFile(Session *session, string absPath, string jsonString) {
+void Annotation::remove(Session *session, int annotationId)
+{
+    pqxx::result getAnnotationAbsPathResult = Utils::executeNonTransaction(
+        session, "getAnnotationAbsPath", annotationId);
+    if (getAnnotationAbsPathResult.empty())
+    {
+        throw annotation_error("Wrong annotation id!");
+    }
+    string annotationPath = getAnnotationAbsPathResult[0][0].c_str();
+    if (std::remove(annotationPath.c_str()) != 0)
+    {
+        throw annotation_error("Error while deleting annotation " + annotationPath);
+    }
+    Utils::executeTransaction(
+        session, "deleteAnnotation", annotationId);
+    
+    Json::Value responseRoot;
+    responseRoot["success"] = true;
+    sendJsonResponse(session, responseRoot);
+
+}
+
+void saveJsonFile(Session *session, string absPath, string jsonString)
+{
     ofstream outFile(absPath);
 
     Json::Value annotationRoot;

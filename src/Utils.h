@@ -36,7 +36,7 @@ public:
     }
 
     /**
-     * @brief Get file name from path without folders and suffix.
+     * @brief Gets file name whithout directory and suffix.
      *
      * @param filePath file path
      * @return file name

@@ -42,6 +42,15 @@ public:
         string insertAnnotation = "INSERT INTO annotations (name, path, tissue_id) \
                              VALUES ($1, $2, $3)";
         connection.prepare("insertAnnotation", insertAnnotation);
+
+        string getAnnotationAbsPath = "SELECT path \
+                                       FROM annotations \
+                                       WHERE id = $1";
+        connection.prepare("getAnnotationAbsPath", getAnnotationAbsPath);
+
+        string deleteAnnotation = "DELETE FROM annotations \
+                                   WHERE id = $1";
+        connection.prepare("deleteAnnotation", deleteAnnotation);
         return connection.is_open();
     };
 };
