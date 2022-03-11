@@ -214,7 +214,8 @@ public:
   void send(Session *session, int resolution, int tile);
 };
 
-typedef struct CompressedTile{
+typedef struct CompressedTile
+{
   RawTile rawtile;
   unsigned int compressedLen;
 } CompressedTile;
@@ -338,14 +339,23 @@ public:
   void run(Session *session, const std::string &argument);
 };
 
+
+/// Define our own derived exception class for annotation errors
+class annotation_error : public std::runtime_error {
+public:
+  /** @param s error message */
+   annotation_error(std::string s) : std::runtime_error(s) { }
+};
+
 /// Annotation Request Command
 class Annotation : public Task
 {
 public:
   void run(Session *session, const std::string &argument);
-  
+
   void getList(Session *session, const std::string &tissuePath);
-  void save(Session *session);
+  void save(Session *session, const std::string &tissuePath,
+            const std::string &jsonName, const std::string &jsonString);
   void load(Session *session, const std::vector<int> &annotationIds);
 };
 

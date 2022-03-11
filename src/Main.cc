@@ -38,6 +38,7 @@
 #include "Writer.h"
 #include "Logger.h"
 #include "PostProcessor.h"
+#include "ConnectionPreparator.h"
 
 #ifdef HAVE_MEMCACHED
 #ifdef WIN32
@@ -513,7 +514,7 @@ int main(int argc, char *argv[])
     Set up a signal handler for USR1, TERM, HUP and INT signals
     - to simplify things, they can all just shutdown the
       server. We can rely on mod_fastcgi to restart us.
-    - SIGUSR1 and SIGHUP don't exist on Windows, though. 
+    - SIGUSR1 and SIGHUP don't exist on Windows, though.
   ***********************************************************/
 
 #ifndef WIN32
@@ -531,7 +532,7 @@ int main(int argc, char *argv[])
             << "<----------------------------------->"
             << endl
             << endl;
-  } 
+  }
 
   // Set up our request timers and seed our random number generator with the millisecond count from it
   Timer request_timer;
@@ -550,19 +551,7 @@ int main(int argc, char *argv[])
            << " hostaddr = " << Environment::getAnnotHostAdress()
            << " port = " << Environment::getAnnotPort();
   pqxx::connection connection(dbString.str());
-
-  string getListSQL = "SELECT a.id, a.path \
-                       FROM tissues AS t INNER JOIN annotations AS a \
-                       ON t.id = a.tissue_id \
-                       WHERE t.path = $1";
-
-  connection.prepare("getList", getListSQL);
-
-  string sendSQL = "SELECT path \
-                    FROM annotations \
-                    WHERE id = $1";
-
-  connection.prepare("load", sendSQL);
+  bool isConnectionOpen = ConnectionPreparator::prepare(connection);
 
   /****************
     Main FCGI loop
@@ -580,7 +569,7 @@ int main(int argc, char *argv[])
 
   while (FCGX_Accept_r(&request) >= 0)
   {
-    FCGIWriter writer(request.out);    
+    FCGIWriter writer(request.out);
 
 #endif
 
@@ -679,6 +668,7 @@ int main(int argc, char *argv[])
         request_string = (header != NULL) ? header : "";
       }
 
+      // Process POST request if get fails
       if (request_string.empty())
       {
         PostProcessor postProcessor(loglevel, &logfile);
@@ -810,7 +800,7 @@ int main(int argc, char *argv[])
       ////////////////////////////////////////////////////////
 
       /* Make sure something has actually been sent to the client
-	 If no response has been sent by now, we must have a malformed command
+   If no response has been sent by now, we must have a malformed command
        */
       if ((!response.imageSent()) && (!response.isSet()))
       {
@@ -819,7 +809,7 @@ int main(int argc, char *argv[])
       }
 
       /* Once we have finished parsing all our OBJ and COMMAND requests
-	 send out our response.
+   send out our response.
        */
       if (response.isSet())
       {
@@ -950,6 +940,22 @@ int main(int argc, char *argv[])
       }
     }
 
+    // Annotation errors
+    catch (const annotation_error &error)
+    {
+      string status = "Status: 400 Bad Request\r\nServer: iipsrv/" + version +
+                      "\r\nContent-Type: text/plain; charset=utf-8" +
+                      (response.getCORS().length() ? "\r\n" + response.getCORS() : "") +
+                      "\r\n\r\n" + error.what();
+      writer.putS(status.c_str());
+      writer.flush();
+      if (loglevel >= 2)
+      {
+        logfile << error.what() << endl;
+        logfile << "Sending HTTP 400 Bad Request" << endl;
+      }
+    }
+
     // Parameter errors
     catch (const invalid_argument &error)
     {
@@ -1042,32 +1048,34 @@ int main(int argc, char *argv[])
   return (0);
 }
 
-string processPostRequest(const FCGX_Request &request) {
+string processPostRequest(const FCGX_Request &request)
+{
   if (loglevel >= 2)
-        {
-          logfile << "Processing POST request" << endl;
-        }
-        char *contentLengthString = FCGX_GetParam("CONTENT_LENGTH", request.envp);
-        int contentLength;
-        if (contentLengthString)
-        {
-          contentLength = atoi(contentLengthString);
-        }
-        else
-        {
-          contentLength = 0;
-        }
-        char *contentBuffer = new char[contentLength];
-        FCGX_GetStr(contentBuffer, contentLength, request.in);
-        string content(contentBuffer, contentLength);
+  {
+    logfile << "Processing POST request" << endl;
+  }
+  char *contentLengthString = FCGX_GetParam("CONTENT_LENGTH", request.envp);
+  int contentLength;
+  if (contentLengthString)
+  {
+    contentLength = atoi(contentLengthString);
+  }
+  else
+  {
+    contentLength = 0;
+  }
+  char *contentBuffer = new char[contentLength];
+  FCGX_GetStr(contentBuffer, contentLength, request.in);
+  string content(contentBuffer, contentLength);
 
-        char *contentTypeString = FCGX_GetParam("CONTENT_TYPE", request.envp);
-        string contentType(contentTypeString);
-        if (contentType.find("multipart") != string::npos)
-        {
-          logfile << "boundary: " << contentType << endl;
-          logfile << "body:" << endl << content << endl;
-        }
-        delete[] contentBuffer;
-        return content;
+  char *contentTypeString = FCGX_GetParam("CONTENT_TYPE", request.envp);
+  string contentType(contentTypeString);
+  if (contentType.find("multipart") != string::npos)
+  {
+    logfile << "boundary: " << contentType << endl;
+    logfile << "body:" << endl
+            << content << endl;
+  }
+  delete[] contentBuffer;
+  return content;
 }

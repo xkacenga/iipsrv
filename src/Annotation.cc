@@ -29,8 +29,7 @@ void Annotation::run(Session *session, const string &argument)
     {
         getList(session, args);
     }
-
-    if (command == "load")
+    else if (command == "load")
     {
         vector<string> stringIds = Utils::split(args, ",");
         vector<int> ids;
@@ -38,6 +37,11 @@ void Annotation::run(Session *session, const string &argument)
                        [](string s) -> int
                        { return atoi(s.c_str()); });
         load(session, ids);
+    }
+    else if (command == "save")
+    {
+        vector<string> splitArgs = Utils::split(args, ",", 3);
+        save(session, splitArgs[0], splitArgs[1], splitArgs[2]);
     }
 
     if (session->loglevel >= 2)
@@ -51,8 +55,7 @@ void Annotation::getList(Session *session, const string &tissuePath)
     if (session->loglevel >= 3)
         (*session->logfile) << "Annotation:: getList handler reached" << std::endl;
 
-    pqxx::nontransaction nt(*(session->connection));
-    pqxx::result result = nt.exec_prepared("getList", tissuePath);
+    pqxx::result result = Utils::executeNonTransaction(session, "getList", tissuePath);
 
     Json::Value root;
     root["tissuePath"] = tissuePath;
@@ -62,7 +65,7 @@ void Annotation::getList(Session *session, const string &tissuePath)
     {
         Json::Value annotation;
         annotation["id"] = atoi(row[0].c_str());
-        annotation["annotationPath"] = row[1].c_str();
+        annotation["name"] = row[1].c_str();
         root["annotations"].append(annotation);
     }
 
@@ -74,14 +77,12 @@ void Annotation::load(Session *session, const std::vector<int> &annotationIds)
     if (session->loglevel >= 3)
         (*session->logfile) << "Annotation:: load handler reached" << std::endl;
 
-    pqxx::nontransaction nt(*(session->connection));
-
     Json::Value root;
     root["annotations"] = Json::arrayValue;
 
     for (int id : annotationIds)
     {
-        pqxx::result result = nt.exec_prepared("load", id);
+        pqxx::result result = Utils::executeNonTransaction(session, "load", id);
         for (auto const &row : result)
         {
             string path = row[0].c_str();
@@ -97,8 +98,64 @@ void Annotation::load(Session *session, const std::vector<int> &annotationIds)
     sendJsonResponse(session, root);
 }
 
-void save(Session *session) {
+void saveJsonFile(Session *session, string absPath, string jsonString);
+
+void Annotation::save(Session *session, const string &tissuePath,
+                      const string &jsonName, const string &jsonString)
+{
+    if (session->loglevel >= 3)
+        (*session->logfile) << "Annotation:: save handler reached" << std::endl;
+
+    pqxx::result getTissueIdResult = Utils::executeNonTransaction(
+        session, "getTissueIdAndAbsPath", tissuePath);
+
+    string tissueAbsPath;
+    int tissueId;
+    if (getTissueIdResult.empty())
+    {
+        tissueAbsPath = Environment::getFileSystemPrefix() + tissuePath;
+        ifstream tissueFile(tissueAbsPath);
+        if (!tissueFile.good())
+        {
+            throw annotation_error("Tissue file does not exist!\n");
+        }
+
+        pqxx::result insertTissueResult = Utils::executeTransaction(
+            session, "insertTissue", tissuePath, tissueAbsPath);
+        tissueId = insertTissueResult[0][0].as<int>();
+    }
+    else
+    {
+        tissueId = getTissueIdResult[0][0].as<int>();
+        tissueAbsPath = getTissueIdResult[0][1].c_str();
+    }
+
+    string annotFilePrefix = Environment::getAnnotFolder();
+    string tissueName = Utils::getFileName(tissuePath);
+    string newJsonName = tissueName + "_" + to_string(tissueId) + "-" + jsonName + ".json";
+    string absJsonPath = annotFilePrefix + newJsonName;
+
+    Utils::executeTransaction(
+        session, "insertAnnotation", newJsonName, absJsonPath, tissueId);
+    saveJsonFile(session, absJsonPath, jsonString);
     return;
+}
+
+void saveJsonFile(Session *session, string absPath, string jsonString) {
+    ofstream outFile(absPath);
+
+    Json::Value annotationRoot;
+    Json::CharReaderBuilder builder;
+    Json::CharReader *reader = builder.newCharReader();
+    bool parsingSuccessful = reader->parse(jsonString.c_str(),
+                                           jsonString.c_str() + jsonString.size(),
+                                           &annotationRoot, nullptr);
+    if (!parsingSuccessful)
+    {
+        throw annotation_error("Error while parsing json!\n");
+    }
+    Json::StyledWriter styledWriter;
+    outFile << styledWriter.write(annotationRoot);
 }
 
 void sendJsonResponse(Session *session, const Json::Value &jsonRoot)

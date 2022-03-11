@@ -31,6 +31,7 @@ iipsrv_fcgi_SOURCES = \
 			Annotation.cc \
 			PostProcessor.h \
 			PostProcessor.cc \
+			ConnectionPreparator.h \
 			IIPImage.h \
 			IIPImage.cc \
 			TPTImage.h \
