@@ -23,7 +23,7 @@ void Annotation::run(Session *session, const string &argument)
     // Time this command
     if (session->loglevel >= 2)
         command_timer.start();
-
+    
     size_t slashPosition = argument.find("/");
     string command = argument.substr(0, slashPosition);
     string args = argument.substr(slashPosition + 1, argument.size());
@@ -50,6 +50,8 @@ void Annotation::run(Session *session, const string &argument)
     {
         int id = parseIdString(args);
         remove(session, id);
+    } else {
+        throw annotation_error(command + " is a wrong command!\n");
     }
 
     if (session->loglevel >= 2)
