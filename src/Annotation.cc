@@ -13,6 +13,7 @@
 using namespace std;
 
 void sendJsonResponse(Session *session, const Json::Value &jsonRoot);
+int parseIdString(string idString);
 
 void Annotation::run(Session *session, const string &argument)
 {
@@ -23,8 +24,13 @@ void Annotation::run(Session *session, const string &argument)
     if (session->loglevel >= 2)
         command_timer.start();
 
-    string command = argument.substr(0, argument.find("/"));
-    string args = argument.substr(argument.find("/") + 1, argument.size());
+    size_t slashPosition = argument.find("/");
+    string command = argument.substr(0, slashPosition);
+    string args = argument.substr(slashPosition + 1, argument.size());
+    if (slashPosition == string::npos || args == "")
+    {
+        throw annotation_error("No arguments were specified for annotation command!\n");
+    }
 
     if (command == "getList")
     {
@@ -32,12 +38,8 @@ void Annotation::run(Session *session, const string &argument)
     }
     else if (command == "load")
     {
-        vector<string> stringIds = Utils::split(args, ",");
-        vector<int> ids;
-        std::transform(stringIds.begin(), stringIds.end(), std::back_inserter(ids),
-                       [](string s) -> int
-                       { return atoi(s.c_str()); });
-        load(session, ids);
+        int id = parseIdString(args);
+        load(session, id);
     }
     else if (command == "save")
     {
@@ -46,7 +48,8 @@ void Annotation::run(Session *session, const string &argument)
     }
     else if (command == "remove")
     {
-        remove(session, stoi(args));
+        int id = parseIdString(args);
+        remove(session, id);
     }
 
     if (session->loglevel >= 2)
@@ -55,10 +58,30 @@ void Annotation::run(Session *session, const string &argument)
     }
 }
 
+int parseIdString(string idString)
+{
+    int id;
+    try
+    {
+        id = stoi(idString);
+    }
+    catch (const exception &e)
+    {
+        throw annotation_error("Conversion of id " + idString + " failed!\n");
+    }
+    return id;
+}
+
 void Annotation::getList(Session *session, const string &tissuePath)
 {
     if (session->loglevel >= 3)
         (*session->logfile) << "Annotation:: getList handler reached" << std::endl;
+
+    string tissueAbsPath = Environment::getFileSystemPrefix() + tissuePath +
+                           Environment::getFileSystemSuffix();
+    ifstream tissueFile(tissueAbsPath);
+    if (!tissueFile.good())
+        throw annotation_error(tissuePath + " does not exist!\n");
 
     pqxx::result result = Utils::executeNonTransaction(session, "getList", tissuePath);
 
@@ -69,7 +92,7 @@ void Annotation::getList(Session *session, const string &tissuePath)
     for (auto const &row : result)
     {
         Json::Value annotation;
-        annotation["id"] = atoi(row[0].c_str());
+        annotation["id"] = stoi(row[0].c_str());
         annotation["name"] = row[1].c_str();
         root["annotations"].append(annotation);
     }
@@ -77,39 +100,35 @@ void Annotation::getList(Session *session, const string &tissuePath)
     sendJsonResponse(session, root);
 }
 
-void Annotation::load(Session *session, const std::vector<int> &annotationIds)
+void Annotation::load(Session *session, int annotationId)
 {
     if (session->loglevel >= 3)
         (*session->logfile) << "Annotation:: load handler reached" << std::endl;
 
     Json::Value root;
-    root["annotations"] = Json::arrayValue;
 
-    for (int id : annotationIds)
+    pqxx::result result = Utils::executeNonTransaction(session, "load", annotationId);
+    for (auto const &row : result)
     {
-        pqxx::result result = Utils::executeNonTransaction(session, "load", id);
-        for (auto const &row : result)
+        string path = row[0].c_str();
+        Json::Value annotation;
+        ifstream jsonFile(path);
+        if (jsonFile.good())
         {
-            string path = row[0].c_str();
-            Json::Value annotation;
-            ifstream jsonFile(path);
-            if (jsonFile.good())
-            {
-                jsonFile >> annotation;
-                root["annotations"].append(annotation);
-            }
+            jsonFile >> root;
         }
     }
     sendJsonResponse(session, root);
 }
 
-void saveJsonFile(Session *session, string absPath, string jsonString);
+Json::Value parseJson(const string &jsonString);
 
 void Annotation::save(Session *session, const string &tissuePath,
                       const string &jsonName, const string &jsonString)
 {
     if (session->loglevel >= 3)
         (*session->logfile) << "Annotation:: save handler reached" << std::endl;
+    Json::Value annotationRoot = parseJson(jsonString);
 
     pqxx::result getTissueIdResult = Utils::executeNonTransaction(
         session, "getTissueIdAndAbsPath", tissuePath);
@@ -118,11 +137,12 @@ void Annotation::save(Session *session, const string &tissuePath,
     int tissueId;
     if (getTissueIdResult.empty())
     {
-        tissueAbsPath = Environment::getFileSystemPrefix() + tissuePath;
+        tissueAbsPath = Environment::getFileSystemPrefix() + tissuePath +
+                        Environment::getFileSystemSuffix();
         ifstream tissueFile(tissueAbsPath);
         if (!tissueFile.good())
         {
-            throw annotation_error("Tissue file does not exist!\n");
+            throw annotation_error(tissuePath + " does not exist!\n");
         }
 
         pqxx::result insertTissueResult = Utils::executeTransaction(
@@ -140,9 +160,12 @@ void Annotation::save(Session *session, const string &tissuePath,
     string newJsonName = tissueName + "_" + to_string(tissueId) + "-" + jsonName + ".json";
     string absJsonPath = annotFilePrefix + newJsonName;
 
+    ofstream outFile(absJsonPath);
+    Json::StyledWriter styledWriter;
+    outFile << styledWriter.write(annotationRoot);
+
     Utils::executeTransaction(
         session, "insertAnnotation", jsonName + ".json", absJsonPath, tissueId);
-    saveJsonFile(session, absJsonPath, jsonString);
 
     Json::Value responseRoot;
     responseRoot["success"] = true;
@@ -156,26 +179,23 @@ void Annotation::remove(Session *session, int annotationId)
         session, "getAnnotationAbsPath", annotationId);
     if (getAnnotationAbsPathResult.empty())
     {
-        throw annotation_error("Wrong annotation id!");
+        throw annotation_error("Wrong annotation id!\n");
     }
     string annotationPath = getAnnotationAbsPathResult[0][0].c_str();
     if (std::remove(annotationPath.c_str()) != 0)
     {
-        throw annotation_error("Error while deleting annotation " + annotationPath);
+        throw annotation_error("Error while deleting annotation " + annotationPath + "\n");
     }
     Utils::executeTransaction(
         session, "deleteAnnotation", annotationId);
-    
+
     Json::Value responseRoot;
     responseRoot["success"] = true;
     sendJsonResponse(session, responseRoot);
-
 }
 
-void saveJsonFile(Session *session, string absPath, string jsonString)
+Json::Value parseJson(const string &jsonString)
 {
-    ofstream outFile(absPath);
-
     Json::Value annotationRoot;
     Json::CharReaderBuilder builder;
     Json::CharReader *reader = builder.newCharReader();
@@ -186,8 +206,7 @@ void saveJsonFile(Session *session, string absPath, string jsonString)
     {
         throw annotation_error("Error while parsing json!\n");
     }
-    Json::StyledWriter styledWriter;
-    outFile << styledWriter.write(annotationRoot);
+    return annotationRoot;
 }
 
 void sendJsonResponse(Session *session, const Json::Value &jsonRoot)

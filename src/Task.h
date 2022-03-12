@@ -356,7 +356,7 @@ public:
   void getList(Session *session, const std::string &tissuePath);
   void save(Session *session, const std::string &tissuePath,
             const std::string &jsonName, const std::string &jsonString);
-  void load(Session *session, const std::vector<int> &annotationIds);
+  void load(Session *session, int annotationId);
   void remove(Session *session, int annotationId);
 };
 
