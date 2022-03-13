@@ -32,7 +32,7 @@ void Annotation::run(Session *session, const string &argument)
         throw annotation_error("No arguments were specified for annotation command!\n");
     }
 
-    if (command == "getList")
+    if (command == "list")
     {
         getList(session, args);
     }

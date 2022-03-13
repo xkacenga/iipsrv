@@ -15,6 +15,13 @@ public:
     PostProcessor(int loglevel, Logger *logfile) : loglevel(loglevel),
                                                    logfile(logfile){};
 
+    /**
+     * @brief Processes POST request.
+     * If contains multipart request, the method returns request string for 'save' command.
+     * 
+     * @param request fcgi request
+     * @return std::string request string containing command and arguments
+     */
     std::string process(const FCGX_Request &request);
 
 private:
