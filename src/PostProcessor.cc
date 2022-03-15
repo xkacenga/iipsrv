@@ -21,7 +21,7 @@ string PostProcessor::process(const FCGX_Request &request)
         string boundary = getBoundary(contentType);
         map<string, string> mimeData = processMultipartMime(content, boundary);
         content = mimeData["protocol"] + "/" + mimeData["tissuePath"] + "," +
-                  mimeData["jsonName"] + "," + mimeData["json"];
+                  mimeData["name"] + "," + mimeData["data"];
     }
 
     return content;

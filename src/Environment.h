@@ -56,9 +56,6 @@
 #define ANNOT_HOST_ADDRESS ""
 #define ANNOT_PORT "5432"
 
-#define ANNOT_FOLDER "" // has to be an absolute path
-
-
 #include <string>
 
 
@@ -365,13 +362,6 @@ class Environment {
     if( envpara ) return std::string( envpara );
     else return ANNOT_PORT;
   }
-
-  static std::string getAnnotFolder(){
-    char* envpara = getenv( "ANNOT_FOLDER" );
-    if( envpara ) return std::string( envpara );
-    else return ANNOT_FOLDER;
-  }
-
 };
 
 

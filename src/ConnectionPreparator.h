@@ -18,16 +18,16 @@ public:
     {
         using namespace std;
 
-        string getListSQL = "SELECT a.id, a.name \
+        string listAnnotations = "SELECT a.id, a.name \
                        FROM tissues AS t INNER JOIN annotations AS a \
                        ON t.id = a.tissue_id \
                        WHERE t.path = $1";
-        connection.prepare("getList", getListSQL);
+        connection.prepare("listAnnotations", listAnnotations);
 
-        string loadSQL = "SELECT path \
+        string getAnnotationData = "SELECT data \
                     FROM annotations \
                     WHERE id = $1";
-        connection.prepare("load", loadSQL);
+        connection.prepare("getAnnotationData", getAnnotationData);
 
         string getTissueIdAndAbsPath = "SELECT id, abs_path \
                           FROM tissues \
@@ -39,14 +39,9 @@ public:
                          RETURNING id";
         connection.prepare("insertTissue", insertTissue);
 
-        string insertAnnotation = "INSERT INTO annotations (name, path, tissue_id) \
+        string insertAnnotation = "INSERT INTO annotations (name, data, tissue_id) \
                              VALUES ($1, $2, $3)";
         connection.prepare("insertAnnotation", insertAnnotation);
-
-        string getAnnotationAbsPath = "SELECT path \
-                                       FROM annotations \
-                                       WHERE id = $1";
-        connection.prepare("getAnnotationAbsPath", getAnnotationAbsPath);
 
         string deleteAnnotation = "DELETE FROM annotations \
                                    WHERE id = $1";

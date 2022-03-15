@@ -353,9 +353,9 @@ class Annotation : public Task
 public:
   void run(Session *session, const std::string &argument);
 
-  void getList(Session *session, const std::string &tissuePath);
+  void list(Session *session, const std::string &tissuePath);
   void save(Session *session, const std::string &tissuePath,
-            const std::string &jsonName, const std::string &jsonString);
+            const std::string &name, const std::string &data);
   void load(Session *session, int annotationId);
   void remove(Session *session, int annotationId);
 };
