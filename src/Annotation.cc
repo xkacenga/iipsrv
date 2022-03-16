@@ -26,6 +26,10 @@ void Annotation::run(Session *session, const string &argument)
     if (session->loglevel >= 2)
         command_timer.start();
 
+    if (!session->connection || !session->connection->is_open()) {
+        throw annotation_error("There is no open connection to the db!\n");
+    }
+
     size_t slashPosition = argument.find("/");
     string command = argument.substr(0, slashPosition);
     string args = argument.substr(slashPosition + 1, argument.size());

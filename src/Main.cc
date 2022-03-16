@@ -545,8 +545,13 @@ int main(int argc, char *argv[])
 
   // Connect to annotations database and prepare SQL statements
   logfile << "Annotation db string is:" << endl << Environment::getAnnotDbString() << endl;
-  pqxx::connection connection(Environment::getAnnotDbString());
-  bool isConnectionOpen = ConnectionPreparator::prepare(connection);
+  pqxx::connection *connection = nullptr;
+  try {
+    connection = new pqxx::connection(Environment::getAnnotDbString());
+    ConnectionPreparator::prepare(*connection);
+  } catch (const exception &e) {
+    logfile << "Connection to the annotation db has failed!" << endl;
+  }
 
   /****************
     Main FCGI loop
@@ -608,7 +613,7 @@ int main(int argc, char *argv[])
       session.logfile = &logfile;
       session.imageCache = &imageCache;
       session.tileCache = &tileCache;
-      session.connection = &connection;
+      session.connection = connection;
       session.out = &writer;
       session.watermark = &watermark;
       session.headers.clear();
@@ -1031,7 +1036,8 @@ int main(int argc, char *argv[])
 
     ///////// End of FCGI_ACCEPT while loop or for loop in debug mode //////////
   }
-  connection.disconnect();
+  if (connection) connection->disconnect();
+  delete(connection);
 
   if (loglevel >= 1)
   {
@@ -1041,36 +1047,4 @@ int main(int argc, char *argv[])
   }
 
   return (0);
-}
-
-string processPostRequest(const FCGX_Request &request)
-{
-  if (loglevel >= 2)
-  {
-    logfile << "Processing POST request" << endl;
-  }
-  char *contentLengthString = FCGX_GetParam("CONTENT_LENGTH", request.envp);
-  int contentLength;
-  if (contentLengthString)
-  {
-    contentLength = atoi(contentLengthString);
-  }
-  else
-  {
-    contentLength = 0;
-  }
-  char *contentBuffer = new char[contentLength];
-  FCGX_GetStr(contentBuffer, contentLength, request.in);
-  string content(contentBuffer, contentLength);
-
-  char *contentTypeString = FCGX_GetParam("CONTENT_TYPE", request.envp);
-  string contentType(contentTypeString);
-  if (contentType.find("multipart") != string::npos)
-  {
-    logfile << "boundary: " << contentType << endl;
-    logfile << "body:" << endl
-            << content << endl;
-  }
-  delete[] contentBuffer;
-  return content;
 }
