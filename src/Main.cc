@@ -544,7 +544,6 @@ int main(int argc, char *argv[])
   Task *task = NULL;
 
   // Connect to annotations database and prepare SQL statements
-  logfile << "Annotation db string is:" << endl << Environment::getAnnotDbString() << endl;
   pqxx::connection *connection = nullptr;
   try {
     connection = new pqxx::connection(Environment::getAnnotDbString());
