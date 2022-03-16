@@ -84,7 +84,7 @@ void Annotation::list(Session *session, const string &tissuePath)
         (*session->logfile) << "Annotation:: list handler reached" << std::endl;
 
     pqxx::result result = Utils::executeNonTransaction(
-        session, "listAnnotations", tissuePath);
+        session->connection, "listAnnotations", tissuePath);
 
     Json::Value root;
     root["tissuePath"] = tissuePath;
@@ -107,7 +107,7 @@ void Annotation::load(Session *session, int annotationId)
         (*session->logfile) << "Annotation:: load handler reached" << std::endl;
 
     pqxx::result result = Utils::executeNonTransaction(
-        session, "getAnnotationData", annotationId);
+        session->connection, "getAnnotationData", annotationId);
 
     Json::Value annotation;
     if (!result.empty())
@@ -127,7 +127,7 @@ void Annotation::save(Session *session, const string &tissuePath,
     Json::Value annotationRoot = parseJson(data);
 
     pqxx::result getTissueIdResult = Utils::executeNonTransaction(
-        session, "getTissueIdAndAbsPath", tissuePath);
+        session->connection, "getTissueIdAndAbsPath", tissuePath);
 
     string tissueAbsPath;
     int tissueId;
@@ -142,7 +142,7 @@ void Annotation::save(Session *session, const string &tissuePath,
         }
 
         pqxx::result insertTissueResult = Utils::executeTransaction(
-            session, "insertTissue", tissuePath, tissueAbsPath);
+            session->connection, "insertTissue", tissuePath, tissueAbsPath);
         tissueId = insertTissueResult[0][0].as<int>();
     }
     else
@@ -158,7 +158,7 @@ void Annotation::save(Session *session, const string &tissuePath,
     jsonData << styledWriter.write(annotationRoot);
 
     Utils::executeTransaction(
-        session, "insertAnnotation", name + ".json", jsonData, tissueId);
+        session->connection, "insertAnnotation", name + ".json", jsonData, tissueId);
 
     sendSuccessResponse(session);
     return;
@@ -167,7 +167,7 @@ void Annotation::save(Session *session, const string &tissuePath,
 void Annotation::remove(Session *session, int annotationId)
 {
     Utils::executeTransaction(
-        session, "deleteAnnotation", annotationId);
+        session->connection, "deleteAnnotation", annotationId);
     sendSuccessResponse(session);
 }
 

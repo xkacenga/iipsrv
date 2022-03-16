@@ -50,19 +50,13 @@
 #define IIIF_VERSION 2
 
 // Annotation database stuff
-#define ANNOT_DB_NAME ""
-#define ANNOT_USER ""
-#define ANNOT_USER_PASSWORD ""
-#define ANNOT_HOST_ADDRESS ""
-#define ANNOT_PORT "5432"
+#define ANNOT_DB_STRING ""
 
 #include <string>
 
 
 /// Class to obtain environment variables
 class Environment {
-
-
  public:
 
   static int getVerbosity(){
@@ -333,34 +327,10 @@ class Environment {
     return version;
   }
 
-  static std::string getAnnotDbName(){
-    char* envpara = getenv( "ANNOT_DB_NAME" );
+  static std::string getAnnotDbString(){
+    char* envpara = getenv( "ANNOT_DB_STRING" );
     if( envpara ) return std::string( envpara );
-    else return ANNOT_DB_NAME;
-  }
-
-  static std::string getAnnotUser(){
-    char* envpara = getenv( "ANNOT_USER" );
-    if( envpara ) return std::string( envpara );
-    else return ANNOT_USER;
-  }
-
-  static std::string getAnnotUserPassword(){
-    char* envpara = getenv( "ANNOT_USER_PASSWORD" );
-    if( envpara ) return std::string( envpara );
-    else return ANNOT_USER_PASSWORD;
-  }
-
-  static std::string getAnnotHostAdress(){
-    char* envpara = getenv( "ANNOT_HOST_ADDRESS" );
-    if( envpara ) return std::string( envpara );
-    else return ANNOT_HOST_ADDRESS;
-  }
-
-  static std::string getAnnotPort(){
-    char* envpara = getenv( "ANNOT_PORT" );
-    if( envpara ) return std::string( envpara );
-    else return ANNOT_PORT;
+    else return ANNOT_DB_STRING;
   }
 };
 

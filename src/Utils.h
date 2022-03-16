@@ -66,16 +66,16 @@ public:
     }
 
     template <typename... Args>
-    static pqxx::result executeNonTransaction(Session *session, std::string query, Args &&...args)
+    static pqxx::result executeNonTransaction(pqxx::connection *connection, std::string query, Args &&...args)
     {
-        pqxx::nontransaction nt(*(session->connection));
+        pqxx::nontransaction nt(*connection);
         return nt.exec_prepared(query, &args...);
     }
 
     template <typename... Args>
-    static pqxx::result executeTransaction(Session *session, std::string query, Args &&...args)
+    static pqxx::result executeTransaction(pqxx::connection *connection, std::string query, Args &&...args)
     {
-        pqxx::work t(*(session->connection));
+        pqxx::work t(*connection);
         pqxx::result result;
         try
         {
