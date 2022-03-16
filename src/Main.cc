@@ -544,11 +544,14 @@ int main(int argc, char *argv[])
   Task *task = NULL;
 
   // Connect to annotations database and prepare SQL statements
-  pqxx::connection *connection = nullptr;
-  try {
-    connection = new pqxx::connection(Environment::getAnnotDbString());
+  unique_ptr<pqxx::connection> connection;
+  try
+  {
+    connection.reset(new pqxx::connection(Environment::getAnnotDbString()));
     ConnectionPreparator::prepare(*connection);
-  } catch (const exception &e) {
+  }
+  catch (const exception &e)
+  {
     logfile << "Connection to the annotation db has failed!" << endl;
   }
 
@@ -602,7 +605,7 @@ int main(int argc, char *argv[])
     {
 
       // Set up our session data object
-      Session session;
+      Session session(connection.get());
       session.image = &image;
       session.response = &response;
       session.view = &view;
@@ -612,7 +615,6 @@ int main(int argc, char *argv[])
       session.logfile = &logfile;
       session.imageCache = &imageCache;
       session.tileCache = &tileCache;
-      session.connection = connection;
       session.out = &writer;
       session.watermark = &watermark;
       session.headers.clear();
@@ -1035,8 +1037,6 @@ int main(int argc, char *argv[])
 
     ///////// End of FCGI_ACCEPT while loop or for loop in debug mode //////////
   }
-  if (connection) connection->disconnect();
-  delete(connection);
 
   if (loglevel >= 1)
   {

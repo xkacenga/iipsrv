@@ -71,7 +71,9 @@ struct Session
   imageCacheMapType *imageCache;
   Cache *tileCache;
 
-  pqxx::connection *connection;
+  pqxx::connection * const connection;
+
+  Session(pqxx::connection * const connection): connection(connection) {};
 
 #ifdef DEBUG
   FileWriter *out;
