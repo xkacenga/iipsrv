@@ -19,6 +19,8 @@ string PostProcessor::process(const FCGX_Request &request)
     if (contentType.find("multipart") != string::npos)
     {
         string boundary = getBoundary(contentType);
+        (*logfile) << "content:\n"
+                   << content << endl;
         map<string, string> mimeData = processMultipartMime(content, boundary);
         content = mimeData["protocol"] + "/" + mimeData["tissuePath"] + "," +
                   mimeData["name"] + "," + mimeData["data"];
@@ -75,9 +77,28 @@ map<string, string> PostProcessor::processMultipartMime(const string &mime,
     for (const string &part : parts)
     {
         vector<string> lines = getLines(part);
-        string name = Utils::split(lines[0], "; name=\"").back();
-        name.pop_back(); // remove " from the end of the name
-        string data = lines.back();
+        vector<string> params = Utils::split(lines[0], ";");
+        string name;
+        for (const string &param : params) {
+            size_t namePos = param.find(" name=\"");
+            if (namePos != string::npos) {
+                name = param.substr(namePos + 7);
+                size_t quotationPos = name.find("\"");
+                name = name.substr(0, quotationPos);
+            }
+        }
+        string data = "";
+        if (lines.size() >= 2 && lines[1] == "Content-Type: application/json")
+        {
+            lines.erase(lines.begin(), lines.begin() + 2);
+            for (const string &line: lines) {
+                data += line;
+            }
+        }
+        else
+        {
+            data = lines.back();
+        }
         mimeData.insert(make_pair(name, data));
     }
     return mimeData;
