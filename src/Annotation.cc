@@ -1,6 +1,7 @@
 #include "Task.h"
 #include "Environment.h"
 #include "Utils.h"
+#include "Transactions.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -87,7 +88,7 @@ void Annotation::list(Session *session, const string &tissuePath)
     if (session->loglevel >= 3)
         (*session->logfile) << "Annotation:: list handler reached" << std::endl;
 
-    pqxx::result result = Utils::executeNonTransaction(
+    pqxx::result result = Transactions::executeNonTransaction(
         session->connection, "listAnnotations", tissuePath);
 
     Json::Value root;
@@ -110,7 +111,7 @@ void Annotation::load(Session *session, int annotationId)
     if (session->loglevel >= 3)
         (*session->logfile) << "Annotation:: load handler reached" << std::endl;
 
-    pqxx::result result = Utils::executeNonTransaction(
+    pqxx::result result = Transactions::executeNonTransaction(
         session->connection, "getAnnotationData", annotationId);
 
     Json::Value annotation;
@@ -130,7 +131,7 @@ void Annotation::save(Session *session, const string &tissuePath,
 
     Json::Value annotationRoot = parseJson(data);
 
-    pqxx::result getTissueIdResult = Utils::executeNonTransaction(
+    pqxx::result getTissueIdResult = Transactions::executeNonTransaction(
         session->connection, "getTissueIdAndAbsPath", tissuePath);
 
     string tissueAbsPath;
@@ -145,7 +146,7 @@ void Annotation::save(Session *session, const string &tissuePath,
             throw annotation_error(tissuePath + " does not exist!\n");
         }
 
-        pqxx::result insertTissueResult = Utils::executeTransaction(
+        pqxx::result insertTissueResult = Transactions::executeTransaction(
             session->connection, "insertTissue", tissuePath, tissueAbsPath);
         tissueId = insertTissueResult[0][0].as<int>();
     }
@@ -161,7 +162,7 @@ void Annotation::save(Session *session, const string &tissuePath,
     Json::StyledWriter styledWriter;
     jsonData << styledWriter.write(annotationRoot);
 
-    Utils::executeTransaction(
+    Transactions::executeTransaction(
         session->connection, "insertAnnotation", name + ".json", jsonData, tissueId);
 
     sendSuccessResponse(session);
@@ -170,7 +171,7 @@ void Annotation::save(Session *session, const string &tissuePath,
 
 void Annotation::remove(Session *session, int annotationId)
 {
-    Utils::executeTransaction(
+    Transactions::executeTransaction(
         session->connection, "deleteAnnotation", annotationId);
     sendSuccessResponse(session);
 }

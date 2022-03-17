@@ -49,11 +49,13 @@ iipsrv_fcgi_SOURCES = \
 			IIPResponse.cc \
 			View.h \
 			View.cc \
+			Transactions.h \
 			Transforms.h \
 			Transforms.cc \
 			Environment.h \
 			URL.h \
 			Utils.h \
+			Utils.cpp \
 			Writer.h \
 			Task.h \
 			Task.cc \

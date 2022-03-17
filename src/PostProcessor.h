@@ -38,6 +38,9 @@ private:
     std::vector<std::string> getParts(const std::string &mime,
                                       const std::string &boundary);
     std::vector<std::string> getLines(const std::string &part);
+
+    std::string getName(const std::string &line);
+    std::string getData(std::vector<std::string> &lines);
 };
 
 #endif

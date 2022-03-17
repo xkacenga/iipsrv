@@ -77,28 +77,9 @@ map<string, string> PostProcessor::processMultipartMime(const string &mime,
     for (const string &part : parts)
     {
         vector<string> lines = getLines(part);
-        vector<string> params = Utils::split(lines[0], ";");
-        string name;
-        for (const string &param : params) {
-            size_t namePos = param.find(" name=\"");
-            if (namePos != string::npos) {
-                name = param.substr(namePos + 7);
-                size_t quotationPos = name.find("\"");
-                name = name.substr(0, quotationPos);
-            }
-        }
-        string data = "";
-        if (lines.size() >= 2 && lines[1] == "Content-Type: application/json")
-        {
-            lines.erase(lines.begin(), lines.begin() + 2);
-            for (const string &line: lines) {
-                data += line;
-            }
-        }
-        else
-        {
-            data = lines.back();
-        }
+        string name = getName(lines[0]);
+        string data = getData(lines);
+
         mimeData.insert(make_pair(name, data));
     }
     return mimeData;
@@ -125,4 +106,36 @@ vector<string> PostProcessor::getLines(const string &part)
                           }),
                 lines.end());
     return lines;
+}
+
+string PostProcessor::getName(const string &line)
+{
+    size_t namePos = line.find("; name=\"");
+    if (namePos == string::npos)
+    {
+        return "";
+    }
+    string name = line.substr(namePos + 8);
+    size_t quotationPos = name.find("\"");
+    name = name.substr(0, quotationPos);
+    return name;
+}
+
+string PostProcessor::getData(vector<string> &lines)
+{
+    string data;
+    if (lines.size() >= 2 && lines[1] == "Content-Type: application/json")
+    {
+        lines.erase(lines.begin(), lines.begin() + 2);
+    }
+    else
+    {
+        lines.erase(lines.begin(), lines.begin() + 1);
+    }
+
+    for (const string &line : lines)
+    {
+        data += line;
+    }
+    return Utils::trim(data);
 }
