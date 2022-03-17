@@ -71,9 +71,9 @@ struct Session
   imageCacheMapType *imageCache;
   Cache *tileCache;
 
-  pqxx::connection * const connection;
+  pqxx::connection *const connection;
 
-  Session(pqxx::connection * const connection): connection(connection) {};
+  Session(pqxx::connection *const connection) : connection(connection){};
 
 #ifdef DEBUG
   FileWriter *out;
@@ -341,12 +341,12 @@ public:
   void run(Session *session, const std::string &argument);
 };
 
-
 /// Define our own derived exception class for annotation errors
-class annotation_error : public std::runtime_error {
+class annotation_error : public std::runtime_error
+{
 public:
   /** @param s error message */
-   annotation_error(std::string s) : std::runtime_error(s) { }
+  annotation_error(std::string s) : std::runtime_error(s) {}
 };
 
 /// Annotation Request Command
@@ -358,6 +358,7 @@ public:
   void list(Session *session, const std::string &tissuePath);
   void save(Session *session, const std::string &tissuePath,
             const std::string &name, const std::string &data);
+  void update(Session *session, int annotationId, const std::string &data);
   void load(Session *session, int annotationId);
   void remove(Session *session, int annotationId);
 };

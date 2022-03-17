@@ -22,8 +22,7 @@ string PostProcessor::process(const FCGX_Request &request)
         (*logfile) << "content:\n"
                    << content << endl;
         map<string, string> mimeData = processMultipartMime(content, boundary);
-        content = mimeData["protocol"] + "/" + mimeData["tissuePath"] + "," +
-                  mimeData["name"] + "," + mimeData["data"];
+        content = formRequestString(mimeData);
     }
 
     return content;
@@ -60,7 +59,7 @@ string PostProcessor::getContentType(const FCGX_Request &request)
     return contentType;
 }
 
-string PostProcessor::getBoundary(string contentType)
+string PostProcessor::getBoundary(const string &contentType)
 {
     string boundaryIdentifier = "boundary=";
     int boundaryPos = contentType.find(boundaryIdentifier) + boundaryIdentifier.size();
@@ -138,4 +137,21 @@ string PostProcessor::getData(vector<string> &lines)
         data += line;
     }
     return Utils::trim(data);
+}
+
+string PostProcessor::formRequestString(const map<string, string> &mimeData)
+{
+    string request;
+    if (mimeData.at("command") == "save")
+    {
+        request = mimeData.at("protocol") + "=" + mimeData.at("command") +
+                  "/" + mimeData.at("tissuePath") +
+                  "," + mimeData.at("name") + "," + mimeData.at("data");
+    }
+    else if (mimeData.at("command") == "update")
+    {
+        request = mimeData.at("protocol") + "=" + mimeData.at("command") +
+                  "/" + mimeData.at("id") + "," + mimeData.at("data");
+    }
+    return request;
 }

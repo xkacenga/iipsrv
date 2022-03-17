@@ -44,6 +44,14 @@ public:
      */
     static std::string trim(const std::string &s);
 
+    /**
+     * @brief Converts string to lowercase.
+     * 
+     * @param s string to convert
+     * @return converted string
+     */
+    static std::string toLower(const std::string &s);
+
 private:
     static std::string ltrim(const std::string &s);
     static std::string rtrim(const std::string &s);

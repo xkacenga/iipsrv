@@ -27,7 +27,8 @@ void Annotation::run(Session *session, const string &argument)
     if (session->loglevel >= 2)
         command_timer.start();
 
-    if (!session->connection || !session->connection->is_open()) {
+    if (!session->connection || !session->connection->is_open())
+    {
         throw annotation_error("There is no open connection to the db!\n");
     }
 
@@ -52,6 +53,12 @@ void Annotation::run(Session *session, const string &argument)
     {
         vector<string> splitArgs = Utils::split(args, ",", 3);
         save(session, splitArgs[0], splitArgs[1], splitArgs[2]);
+    }
+    else if (command == "update")
+    {
+        vector<string> splitArgs = Utils::split(args, ",", 2);
+        int id = parseIdString(splitArgs[0]);
+        update(session, id, splitArgs[1]);
     }
     else if (command == "remove")
     {
@@ -163,10 +170,26 @@ void Annotation::save(Session *session, const string &tissuePath,
     jsonData << styledWriter.write(annotationRoot);
 
     Transactions::executeTransaction(
-        session->connection, "insertAnnotation", name + ".json", jsonData, tissueId);
+        session->connection, "insertAnnotation", name + ".json", jsonData.str(), tissueId);
 
     sendSuccessResponse(session);
     return;
+}
+
+void Annotation::update(Session *session, int annotationId, const string &data)
+{
+     if (session->loglevel >= 3)
+        (*session->logfile) << "Annotation:: update handler reached" << std::endl;
+
+    Json::Value annotationRoot = parseJson(data);
+    stringstream jsonData;
+    Json::StyledWriter styledWriter;
+    jsonData << styledWriter.write(annotationRoot);
+
+    Transactions::executeTransaction(
+        session->connection, "updateAnnotation", jsonData.str(), annotationId);
+    sendSuccessResponse(session);
+
 }
 
 void Annotation::remove(Session *session, int annotationId)

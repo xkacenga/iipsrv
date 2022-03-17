@@ -9,7 +9,7 @@ class ConnectionPreparator
 public:
     /**
      * @brief Prepares sql queries.
-     * 
+     *
      * @param connection connection
      * @return true if connection successfully opened
      * @return false otherwise
@@ -46,6 +46,12 @@ public:
         string deleteAnnotation = "DELETE FROM annotations \
                                    WHERE id = $1";
         connection.prepare("deleteAnnotation", deleteAnnotation);
+
+        string updateAnnotation = "UPDATE annotations \
+                                   SET data = $1 \
+                                   WHERE id = $2";
+        connection.prepare("updateAnnotation", updateAnnotation);
+        
         return connection.is_open();
     };
 };

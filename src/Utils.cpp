@@ -1,15 +1,18 @@
 #include <Utils.h>
+#include <algorithm>
 
-std::vector<std::string> Utils::split(const std::string &argument,
-                                             const std::string &delimiter,
-                                             int limit /*=-1*/)
+using namespace std;
+
+vector<string> Utils::split(const string &argument,
+                            const string &delimiter,
+                            int limit /*=-1*/)
 {
-    std::vector<std::string> strings;
+    vector<string> strings;
 
     int counter = 1;
     auto start = 0U;
     auto end = argument.find(delimiter);
-    while (end != std::string::npos)
+    while (end != string::npos)
     {
         if (counter == limit)
         {
@@ -25,17 +28,17 @@ std::vector<std::string> Utils::split(const std::string &argument,
     return strings;
 }
 
-std::string Utils::getFileName(const std::string &filePath)
+string Utils::getFileName(const string &filePath)
 {
-    std::string tissueName = filePath.substr(
+    string tissueName = filePath.substr(
         filePath.find_last_of('/') + 1, filePath.size() - 1);
     tissueName = tissueName.substr(0, tissueName.find_first_of('.'));
     return tissueName;
 }
 
-std::string Utils::fixFilePath(const std::string &filePath)
+string Utils::fixFilePath(const string &filePath)
 {
-    std::string newPath = filePath;
+    string newPath = filePath;
     if (newPath.back() != '/')
     {
         newPath.push_back('/');
@@ -43,21 +46,32 @@ std::string Utils::fixFilePath(const std::string &filePath)
     return newPath;
 }
 
-std::string Utils::trim(const std::string &s)
+string Utils::trim(const string &s)
 {
     return rtrim(ltrim(s));
 }
 
-std::string WHITESPACE = " \n\r\t\f\v";
-
-std::string Utils::ltrim(const std::string &s)
+string Utils::toLower(const string &s)
 {
-    size_t start = s.find_first_not_of(WHITESPACE);
-    return (start == std::string::npos) ? "" : s.substr(start);
+    string lower;
+    transform(s.begin(), s.end(), lower.begin(),
+              [](unsigned char c)
+              { return tolower(c); });
+    return lower;
 }
 
-std::string Utils::rtrim(const std::string &s)
+//private:
+
+const string WHITESPACE = " \n\r\t\f\v";
+
+string Utils::ltrim(const string &s)
+{
+    size_t start = s.find_first_not_of(WHITESPACE);
+    return (start == string::npos) ? "" : s.substr(start);
+}
+
+string Utils::rtrim(const string &s)
 {
     size_t end = s.find_last_not_of(WHITESPACE);
-    return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+    return (end == string::npos) ? "" : s.substr(0, end + 1);
 }
