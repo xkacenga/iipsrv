@@ -60,7 +60,30 @@ string Utils::toLower(const string &s)
     return lower;
 }
 
-//private:
+Json::Value Utils::parseJson(const string &jsonString)
+{
+    Json::Value annotationRoot;
+    Json::CharReaderBuilder builder;
+    Json::CharReader *reader = builder.newCharReader();
+    bool parsingSuccessful = reader->parse(jsonString.c_str(),
+                                           jsonString.c_str() + jsonString.size(),
+                                           &annotationRoot, nullptr);
+    if (!parsingSuccessful)
+    {
+        throw annotation_error("Error while parsing json!\n");
+    }
+    return annotationRoot;
+}
+
+string Utils::jsonToString(const Json::Value &json)
+{
+    stringstream jsonData;
+    Json::StyledWriter styledWriter;
+    jsonData << styledWriter.write(json);
+    return jsonData.str();
+}
+
+// private:
 
 const string WHITESPACE = " \n\r\t\f\v";
 

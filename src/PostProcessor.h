@@ -17,7 +17,8 @@ public:
 
     /**
      * @brief Processes POST request.
-     * If contains multipart request, the method returns request string for 'save' command.
+     * If it contains application/json request,
+     * the method returns request string for 'save' or 'update' command.
      *
      * @param request fcgi request
      * @return std::string request string containing command and arguments
@@ -31,17 +32,6 @@ private:
     int getContentLength(const FCGX_Request &request);
     std::string getContent(const FCGX_Request &request, int contentLength);
     std::string getContentType(const FCGX_Request &request);
-    std::string getBoundary(const std::string &contentType);
-
-    std::map<std::string, std::string> processMultipartMime(const std::string &mime,
-                                                            const std::string &boundary);
-    std::vector<std::string> getParts(const std::string &mime,
-                                      const std::string &boundary);
-    std::vector<std::string> getLines(const std::string &part);
-
-    std::string getName(const std::string &line);
-    std::string getData(std::vector<std::string> &lines);
-    std::string formRequestString(const std::map<std::string, std::string> &mimeData);
 };
 
 #endif

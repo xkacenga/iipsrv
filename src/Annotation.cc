@@ -2,6 +2,7 @@
 #include "Environment.h"
 #include "Utils.h"
 #include "Transactions.h"
+#include "PostProcessor.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -15,7 +16,6 @@ using namespace std;
 
 void sendJsonResponse(Session *session, const Json::Value &jsonRoot);
 int parseIdString(string idString);
-Json::Value parseJson(const string &jsonString);
 void sendSuccessResponse(Session *session);
 
 void Annotation::run(Session *session, const string &argument)
@@ -125,7 +125,7 @@ void Annotation::load(Session *session, int annotationId)
     if (!result.empty())
     {
         string data = result[0][0].c_str();
-        annotation = parseJson(data);
+        annotation = Utils::parseJson(data);
     }
     sendJsonResponse(session, annotation);
 }
@@ -136,7 +136,7 @@ void Annotation::save(Session *session, const string &tissuePath,
     if (session->loglevel >= 3)
         (*session->logfile) << "Annotation:: save handler reached" << std::endl;
 
-    Json::Value annotationRoot = parseJson(data);
+    Json::Value annotationRoot = Utils::parseJson(data);
 
     pqxx::result getTissueIdResult = Transactions::executeNonTransaction(
         session->connection, "getTissueIdAndAbsPath", tissuePath);
@@ -164,13 +164,10 @@ void Annotation::save(Session *session, const string &tissuePath,
     }
 
     string tissueName = Utils::getFileName(tissuePath);
-
-    stringstream jsonData;
-    Json::StyledWriter styledWriter;
-    jsonData << styledWriter.write(annotationRoot);
+    string jsonData = Utils::jsonToString(annotationRoot);
 
     Transactions::executeTransaction(
-        session->connection, "insertAnnotation", name + ".json", jsonData.str(), tissueId);
+        session->connection, "insertAnnotation", name, jsonData, tissueId);
 
     sendSuccessResponse(session);
     return;
@@ -178,18 +175,15 @@ void Annotation::save(Session *session, const string &tissuePath,
 
 void Annotation::update(Session *session, int annotationId, const string &data)
 {
-     if (session->loglevel >= 3)
+    if (session->loglevel >= 3)
         (*session->logfile) << "Annotation:: update handler reached" << std::endl;
 
-    Json::Value annotationRoot = parseJson(data);
-    stringstream jsonData;
-    Json::StyledWriter styledWriter;
-    jsonData << styledWriter.write(annotationRoot);
+    Json::Value annotationRoot = Utils::parseJson(data);
+    string jsonData = Utils::jsonToString(annotationRoot);
 
     Transactions::executeTransaction(
-        session->connection, "updateAnnotation", jsonData.str(), annotationId);
+        session->connection, "updateAnnotation", annotationId, jsonData);
     sendSuccessResponse(session);
-
 }
 
 void Annotation::remove(Session *session, int annotationId)
@@ -197,21 +191,6 @@ void Annotation::remove(Session *session, int annotationId)
     Transactions::executeTransaction(
         session->connection, "deleteAnnotation", annotationId);
     sendSuccessResponse(session);
-}
-
-Json::Value parseJson(const string &jsonString)
-{
-    Json::Value annotationRoot;
-    Json::CharReaderBuilder builder;
-    Json::CharReader *reader = builder.newCharReader();
-    bool parsingSuccessful = reader->parse(jsonString.c_str(),
-                                           jsonString.c_str() + jsonString.size(),
-                                           &annotationRoot, nullptr);
-    if (!parsingSuccessful)
-    {
-        throw annotation_error("Error while parsing json!\n");
-    }
-    return annotationRoot;
 }
 
 void sendSuccessResponse(Session *session)

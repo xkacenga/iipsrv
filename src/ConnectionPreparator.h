@@ -48,10 +48,10 @@ public:
         connection.prepare("deleteAnnotation", deleteAnnotation);
 
         string updateAnnotation = "UPDATE annotations \
-                                   SET data = $1 \
-                                   WHERE id = $2";
+                                   SET data = $2 \
+                                   WHERE id = $1";
         connection.prepare("updateAnnotation", updateAnnotation);
-        
+
         return connection.is_open();
     };
 };
