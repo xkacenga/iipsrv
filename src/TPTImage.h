@@ -42,6 +42,17 @@ class TPTImage : public IIPImage {
   /// Tile data buffer pointer
   tdata_t tile_buf;
 
+  /// Offsets of subifds
+  std::vector<uint64> subIfdOffsets;
+
+  /**
+   * @brief Initializes vector of subifd offsets.
+   * 
+   * @return true if succesfull
+   * @return false otherwise
+   */
+  bool initializeSubIfdOffsets();
+
 
  public:
 
@@ -56,7 +67,7 @@ class TPTImage : public IIPImage {
   /// Copy Constructor
   /** @param image IIPImage object
    */
-  TPTImage( const TPTImage& image ): IIPImage( image ), tiff( NULL ),tile_buf( NULL ) {};
+  TPTImage( const TPTImage& image ): IIPImage( image ), tiff( NULL ), tile_buf( NULL ) {};
 
   /// Assignment Operator
   /** @param image TPTImage object
@@ -75,7 +86,8 @@ class TPTImage : public IIPImage {
   /** @param image IIPImage object
    */
   TPTImage( const IIPImage& image ): IIPImage( image ) {
-    tiff = NULL; tile_buf = NULL; 
+    tiff = NULL;
+    tile_buf = NULL;
   };
 
   /// Destructor
