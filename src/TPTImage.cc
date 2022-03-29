@@ -101,22 +101,40 @@ void TPTImage::loadImageInfo( int seq, int ang )
     throw file_error( "TPTImage :: TIFFSetDirectory() failed" );
   }
 
-  // Store the list of image dimensions available
-  image_widths.push_back( w );
-  image_heights.push_back( h );
-
-  for( count = 0; TIFFReadDirectory( tiff ); count++ ){
-    TIFFGetField( tiff, TIFFTAG_IMAGEWIDTH, &w );
-    TIFFGetField( tiff, TIFFTAG_IMAGELENGTH, &h );
-    image_widths.push_back( w );
-    image_heights.push_back( h );
+  // Get subifd data (mostly for OME_TIFF support)
+  initializeSubIfdOffsets();
+  
+  image_widths.push_back(w);
+  image_heights.push_back(h);
+  if (subIfdOffsets.size())
+  {
+    for (int i = 0; i < subIfdOffsets.size(); i++)
+    {
+      TIFFSetSubDirectory(tiff, subIfdOffsets[i]);
+      TIFFGetField(tiff, TIFFTAG_IMAGEWIDTH, &w);
+      TIFFGetField(tiff, TIFFTAG_IMAGELENGTH, &h);
+      image_widths.push_back(w);
+      image_heights.push_back(h);
+      TIFFSetDirectory(tiff, 0);
+    }
+    numResolutions = subIfdOffsets.size() + 1;
+  }
+  else
+  {
+    for (count = 0; TIFFReadDirectory(tiff); count++)
+    {
+      TIFFGetField(tiff, TIFFTAG_IMAGEWIDTH, &w);
+      TIFFGetField(tiff, TIFFTAG_IMAGELENGTH, &h);
+      image_widths.push_back(w);
+      image_heights.push_back(h);
+    }
+    numResolutions = count + 1;
   }
 
   // Reset the TIFF directory
   if( !TIFFSetDirectory( tiff, current_dir ) ){
     throw file_error( "TPTImage :: TIFFSetDirectory() failed" );
   }
-  numResolutions = count+1;
 
   // Handle various colour spaces
   if( colour == PHOTOMETRIC_CIELAB ) colourspace = CIELAB;
@@ -237,18 +255,35 @@ RawTile TPTImage::getTile( int seq, int ang, unsigned int res, int layers, unsig
     loadImageInfo( seq, ang );
   }
 
+  // load subifd offsets
+  if (subIfdOffsets.empty()) {
+    initializeSubIfdOffsets();
+  }
+
 
   // The first resolution is the highest, so we need to invert
   //  the resolution - can avoid this if we store our images with
   //  the smallest image first.
   int vipsres = ( numResolutions - 1 ) - res;
 
-
   // Change to the right directory for the resolution
-  if( !TIFFSetDirectory( tiff, vipsres ) ) {
-    throw file_error( "TPTImage :: TIFFSetDirectory() failed" );
+  if (subIfdOffsets.empty() || vipsres == 0)
+  {
+    if (!TIFFSetDirectory(tiff, vipsres))
+    {
+      stringstream s;
+      s << "subifd: " << !subIfdOffsets.empty() << endl;
+      s << "numres: " << numResolutions << "\nres: " << res << "\nvipsres: " << vipsres << endl;
+      throw file_error(s.str());
+    }
   }
-
+  else
+  {
+    if (!TIFFSetSubDirectory(tiff, subIfdOffsets[vipsres - 1]))
+    {
+      throw file_error("TPTImage :: TIFFSetSubDirectory() failed");
+    }
+  }
 
   // Check that a valid tile number was given
   if( tile >= TIFFNumberOfTiles( tiff ) ) {
@@ -381,8 +416,14 @@ RawTile TPTImage::getTile( int seq, int ang, unsigned int res, int layers, unsig
     rawtile.memoryManaged = 1;
   }
 
-
   return( rawtile );
+}
 
+bool TPTImage::initializeSubIfdOffsets() {
+    uint16 subIfdCount = 0;
+    uint64 *offsets = NULL;
+    bool success = TIFFGetField(tiff, TIFFTAG_SUBIFD, &subIfdCount, &offsets);
+    subIfdOffsets.insert(subIfdOffsets.begin(), offsets, offsets + subIfdCount);
+    return success;
 }
 
