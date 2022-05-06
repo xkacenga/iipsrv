@@ -421,7 +421,7 @@ RawTile TPTImage::getTile( int seq, int ang, unsigned int res, int layers, unsig
 
 bool TPTImage::initializeSubIfdOffsets() {
     uint16 subIfdCount = 0;
-    uint64 *offsets = NULL;
+    uint64 *offsets = nullptr;
     bool success = TIFFGetField(tiff, TIFFTAG_SUBIFD, &subIfdCount, &offsets);
     subIfdOffsets.insert(subIfdOffsets.begin(), offsets, offsets + subIfdCount);
     return success;

@@ -38,6 +38,7 @@
 #include "Transforms.h"
 #include "Logger.h"
 #include "PNGCompressor.h"
+#include "IAnnotation.h"
 
 // Define our http header cache max age (24 hours)
 #define MAX_AGE 86400
@@ -350,17 +351,16 @@ public:
 };
 
 /// Annotation Request Command
-class Annotation : public Task
+class Annotation : public Task, public IAnnotation
 {
 public:
-  void run(Session *session, const std::string &argument);
+  virtual void run(Session *session, const std::string &argument);
 
-  void list(Session *session, const std::string &tissuePath);
-  void save(Session *session, const std::string &tissuePath,
-            const std::string &name, const std::string &data);
-  void update(Session *session, int annotationId, const std::string &data);
-  void load(Session *session, int annotationId);
-  void remove(Session *session, int annotationId);
+  virtual void list(Session *session, const std::string &tissuePath);
+  virtual void save(Session *session, const std::string &tissuePath, const std::string &data);
+  virtual void update(Session *session, int annotationId, const std::string &data);
+  virtual void load(Session *session, int annotationId);
+  virtual void remove(Session *session, int annotationId);
 };
 
 /// IIIF Command

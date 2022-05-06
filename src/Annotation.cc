@@ -2,11 +2,8 @@
 #include "Environment.h"
 #include "Utils.h"
 #include "Transactions.h"
-#include "PostProcessor.h"
 
-#include <cstdlib>
 #include <cstdio>
-#include <fstream>
 #include <algorithm>
 
 #include <jsoncpp/json/json.h>
@@ -51,8 +48,8 @@ void Annotation::run(Session *session, const string &argument)
     }
     else if (command == "save")
     {
-        vector<string> splitArgs = Utils::split(args, ",", 3);
-        save(session, splitArgs[0], splitArgs[1], splitArgs[2]);
+        vector<string> splitArgs = Utils::split(args, ",", 2);
+        save(session, splitArgs[0], splitArgs[1]);
     }
     else if (command == "update")
     {
@@ -106,7 +103,9 @@ void Annotation::list(Session *session, const string &tissuePath)
     {
         Json::Value annotation;
         annotation["id"] = stoi(row[0].c_str());
-        annotation["name"] = row[1].c_str();
+
+        Json::Value data = Utils::parseJson(row[1].c_str());
+        annotation["metadata"] = Utils::jsonToString(data["metadata"]);
         root["annotations"].append(annotation);
     }
 
@@ -130,8 +129,7 @@ void Annotation::load(Session *session, int annotationId)
     sendJsonResponse(session, annotation);
 }
 
-void Annotation::save(Session *session, const string &tissuePath,
-                      const string &name, const string &data)
+void Annotation::save(Session *session, const string &tissuePath, const string &data)
 {
     if (session->loglevel >= 3)
         (*session->logfile) << "Annotation:: save handler reached" << std::endl;
@@ -167,7 +165,7 @@ void Annotation::save(Session *session, const string &tissuePath,
     string jsonData = Utils::jsonToString(annotationRoot);
 
     Transactions::executeTransaction(
-        session->connection, "insertAnnotation", name, jsonData, tissueId);
+        session->connection, "insertAnnotation", jsonData, tissueId);
 
     sendSuccessResponse(session);
     return;

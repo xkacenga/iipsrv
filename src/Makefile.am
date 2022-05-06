@@ -45,6 +45,7 @@ iipsrv_fcgi_SOURCES = \
 			TileManager.h \
 			TileManager.cc \
 			Tokenizer.h \
+			IAnnotation.h \
 			IIPResponse.h \
 			IIPResponse.cc \
 			View.h \
