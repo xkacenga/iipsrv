@@ -105,7 +105,7 @@ void Annotation::list(Session *session, const string &tissuePath)
         annotation["id"] = stoi(row[0].c_str());
 
         Json::Value data = Utils::parseJson(row[1].c_str());
-        annotation["metadata"] = Utils::jsonToString(data["metadata"]);
+        annotation["metadata"] = data["metadata"];
         root["annotations"].append(annotation);
     }
 

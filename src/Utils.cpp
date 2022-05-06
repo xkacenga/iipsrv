@@ -77,10 +77,9 @@ Json::Value Utils::parseJson(const string &jsonString)
 
 string Utils::jsonToString(const Json::Value &json)
 {
-    stringstream jsonData;
-    Json::StyledWriter styledWriter;
-    jsonData << styledWriter.write(json);
-    return jsonData.str();
+    Json::StreamWriterBuilder builder;
+    builder.settings_["indentation"] = "";
+    return Json::writeString(builder, json);
 }
 
 // private:
