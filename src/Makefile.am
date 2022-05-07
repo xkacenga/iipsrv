@@ -29,6 +29,7 @@ EXTRA_iipsrv_fcgi_SOURCES = DSOImage.h DSOImage.cc KakaduImage.h KakaduImage.cc 
 
 iipsrv_fcgi_SOURCES = \
 			Annotation.cc \
+			Annotation.h \
 			PostProcessor.h \
 			PostProcessor.cc \
 			ConnectionPreparator.h \

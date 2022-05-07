@@ -29,9 +29,6 @@ string PostProcessor::process(const FCGX_Request &request)
         {
             string tissuePath = request["tissuePath"].asString();
             string data = Utils::jsonToString(request["data"]);
-            
-            (*logfile) << "after save processing" << endl;
-
             contentStream << protocol << "=" << command << "/"
                           << tissuePath << "," << data;
         }
@@ -39,14 +36,11 @@ string PostProcessor::process(const FCGX_Request &request)
         {
             int annotationId = request["id"].asInt();
             string data = Utils::jsonToString(request["data"]);
-
             contentStream << protocol << "=" << command << "/"
                           << annotationId << "," << data;
         }
         content = contentStream.str();
-        (*logfile) << "content" << content << endl;
     }
-
     return content;
 }
 

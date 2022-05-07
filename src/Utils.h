@@ -40,7 +40,7 @@ public:
     /**
      * @brief Removes whitespaces from the beginning and the end of the string.
      * 
-     * @param s string
+     * @param s string to trim
      * @return std::string trimmed string
      */
     static std::string trim(const std::string &s);
@@ -56,15 +56,15 @@ public:
     /**
      * @brief Converts string to Json::Value.
      * 
-     * @param jsonString 
-     * @return Json::Value 
+     * @param jsonString string to convert
+     * @return Json::Value
      */
     static Json::Value parseJson(const std::string &jsonString);
 
     /**
      * @brief Converts Json::Value to string.
      * 
-     * @param json 
+     * @param json json to convert
      * @return std::string 
      */
     static std::string jsonToString(const Json::Value &json);

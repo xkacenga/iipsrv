@@ -223,6 +223,7 @@ typedef struct CompressedTile
   unsigned int compressedLen;
 } CompressedTile;
 
+// JPEG Tile Export Command - extended
 class JTL_Ext : public Task
 {
 public:
@@ -348,19 +349,6 @@ class annotation_error : public std::runtime_error
 public:
   /** @param s error message */
   annotation_error(std::string s) : std::runtime_error(s) {}
-};
-
-/// Annotation Request Command
-class Annotation : public Task, public IAnnotation
-{
-public:
-  virtual void run(Session *session, const std::string &argument);
-
-  virtual void list(Session *session, const std::string &tissuePath);
-  virtual void save(Session *session, const std::string &tissuePath, const std::string &data);
-  virtual void update(Session *session, int annotationId, const std::string &data);
-  virtual void load(Session *session, int annotationId);
-  virtual void remove(Session *session, int annotationId);
 };
 
 /// IIIF Command
