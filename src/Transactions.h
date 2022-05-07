@@ -9,12 +9,12 @@ class Transactions
 public:
     /**
      * @brief Executes Postgre non-transaction (i.e. select).
-     * 
-     * @tparam Args 
+     *
+     * @tparam Args
      * @param connection pointer to pqxx connection
      * @param query string defining prepared statement
      * @param args query arguments
-     * @return pqxx::result 
+     * @return pqxx::result
      */
     template <typename... Args>
     static pqxx::result executeNonTransaction(
@@ -24,15 +24,14 @@ public:
         return nt.exec_prepared(query, &args...);
     }
 
-
     /**
      * @brief Executes Postgre transaction.
-     * 
-     * @tparam Args 
+     *
+     * @tparam Args
      * @param connection pointer to pqxx connection
      * @param query string defining prepared statement
      * @param args query arguments
-     * @return pqxx::result 
+     * @return pqxx::result
      */
     template <typename... Args>
     static pqxx::result executeTransaction(

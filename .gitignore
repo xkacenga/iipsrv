@@ -3,6 +3,8 @@
 *~
 Makefile
 doc/html
+build
+.idea
 
 # Files made by autogen.sh.
 Makefile.in

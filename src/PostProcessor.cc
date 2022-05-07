@@ -27,27 +27,20 @@ string PostProcessor::process(const FCGX_Request &request)
         stringstream contentStream;
         if (command == "save")
         {
-            string name = request["name"].asString();
             string tissuePath = request["tissuePath"].asString();
             string data = Utils::jsonToString(request["data"]);
-            
-            (*logfile) << "after save processing" << endl;
-
             contentStream << protocol << "=" << command << "/"
-                          << tissuePath << "," << name << "," << data;
+                          << tissuePath << "," << data;
         }
         else if (command == "update")
         {
             int annotationId = request["id"].asInt();
             string data = Utils::jsonToString(request["data"]);
-
             contentStream << protocol << "=" << command << "/"
                           << annotationId << "," << data;
         }
         content = contentStream.str();
-        (*logfile) << "content" << content << endl;
     }
-
     return content;
 }
 

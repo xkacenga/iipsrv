@@ -8,7 +8,7 @@ class ConnectionPreparator
 {
 public:
     /**
-     * @brief Prepares sql queries.
+     * @brief Prepares pqxx sql queries.
      *
      * @param connection connection
      * @return true if connection successfully opened
@@ -18,7 +18,7 @@ public:
     {
         using namespace std;
 
-        string listAnnotations = "SELECT a.id, a.name \
+        string listAnnotations = "SELECT a.id, a.data \
                        FROM tissues AS t INNER JOIN annotations AS a \
                        ON t.id = a.tissue_id \
                        WHERE t.path = $1";
@@ -39,8 +39,8 @@ public:
                          RETURNING id";
         connection.prepare("insertTissue", insertTissue);
 
-        string insertAnnotation = "INSERT INTO annotations (name, data, tissue_id) \
-                             VALUES ($1, $2, $3)";
+        string insertAnnotation = "INSERT INTO annotations (data, tissue_id) \
+                             VALUES ($1, $2)";
         connection.prepare("insertAnnotation", insertAnnotation);
 
         string deleteAnnotation = "DELETE FROM annotations \

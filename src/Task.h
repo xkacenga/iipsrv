@@ -38,6 +38,7 @@
 #include "Transforms.h"
 #include "Logger.h"
 #include "PNGCompressor.h"
+#include "IAnnotation.h"
 
 // Define our http header cache max age (24 hours)
 #define MAX_AGE 86400
@@ -222,6 +223,7 @@ typedef struct CompressedTile
   unsigned int compressedLen;
 } CompressedTile;
 
+// JPEG Tile Export Command - extended
 class JTL_Ext : public Task
 {
 public:
@@ -347,20 +349,6 @@ class annotation_error : public std::runtime_error
 public:
   /** @param s error message */
   annotation_error(std::string s) : std::runtime_error(s) {}
-};
-
-/// Annotation Request Command
-class Annotation : public Task
-{
-public:
-  void run(Session *session, const std::string &argument);
-
-  void list(Session *session, const std::string &tissuePath);
-  void save(Session *session, const std::string &tissuePath,
-            const std::string &name, const std::string &data);
-  void update(Session *session, int annotationId, const std::string &data);
-  void load(Session *session, int annotationId);
-  void remove(Session *session, int annotationId);
 };
 
 /// IIIF Command

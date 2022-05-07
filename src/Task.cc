@@ -20,6 +20,7 @@
 
 #include "Task.h"
 #include "Tokenizer.h"
+#include <Annotation.h>
 #include <cstdlib>
 #include <algorithm>
 
