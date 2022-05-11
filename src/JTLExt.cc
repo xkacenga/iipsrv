@@ -76,10 +76,11 @@ void JTL_Ext::send(Compressor *compressor,
         imagesToAppend.emplace_back(VImage::black(tileWidth, tileHeight));
       }
     }
-    VImage out = imagesToAppend[0];
+    VImage out = VImage::arrayjoin(imagesToAppend, VImage::option()->set("across", 1));
+    /**VImage out = imagesToAppend[0];
     for (int i = 1; i < tileCount; i++) {
       out = out.join(imagesToAppend[i], VIPS_DIRECTION_VERTICAL, nullptr);
-    }
+    }*/
     CompressionType compressionType = compressor->getCompressionType();
     string format = compressionType == JPEG ? ".jpg" : ".png";
     out.write_to_buffer(format.c_str(), (void**) &buffer, &bufferSize, nullptr);

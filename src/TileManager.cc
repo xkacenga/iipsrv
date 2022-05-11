@@ -64,9 +64,9 @@ RawTile TileManager::getNewTile( int resolution, int tile, int xangle, int yangl
   if( ctype == UNCOMPRESSED ){
     // Add to our tile cache
     if( loglevel >= 4 ) insert_timer.start();
-    tileCache->insert( ttt );
+    /*tileCache->insert( ttt );
     if( loglevel >= 4 ) *logfile << "TileManager :: Tile cache insertion time: " << insert_timer.getTime()
-				 << " microseconds" << endl;
+				 << " microseconds" << endl;*/
     return ttt;
   }
 
@@ -106,9 +106,9 @@ RawTile TileManager::getNewTile( int resolution, int tile, int xangle, int yangl
 
   // Add to our tile cache
   if( loglevel >= 4 ) insert_timer.start();
-  tileCache->insert( ttt );
+  /*tileCache->insert( ttt );
   if( loglevel >= 4 ) *logfile << "TileManager :: Tile cache insertion time: " << insert_timer.getTime()
-			       << " microseconds" << endl;
+			       << " microseconds" << endl; */
 
 
   return ttt;
@@ -275,9 +275,9 @@ RawTile TileManager::getTile( int resolution, int tile, int xangle, int yangle, 
 
     // Add our compressed tile to the cache
     if( loglevel >= 3 ) insert_timer.start();
-    tileCache->insert( ttt );
+    /*tileCache->insert( ttt );
     if( loglevel >= 3 ) *logfile << "TileManager :: Tile cache insertion time: " << insert_timer.getTime()
-				 << " microseconds" << endl;
+				 << " microseconds" << endl; */
 
     if( loglevel >= 3 ) *logfile << "TileManager :: Total Tile Access Time: "
 				 << tile_timer.getTime() << " microseconds" << endl;

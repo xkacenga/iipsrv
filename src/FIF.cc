@@ -80,44 +80,12 @@ void FIF::run(Session *session, const string &src)
   // Put the image setup into a try block as object creation can throw an exception
   try
   {
-
-    // Check whether cache is empty
-    if (session->imageCache->empty())
-    {
-      if (session->loglevel >= 1)
-        *(session->logfile) << "FIF :: Image cache initialization" << endl;
-      test = IIPImage(argument);
-      test.setFileNamePattern(filename_pattern);
-      test.setFileSystemPrefix(filesystem_prefix);
-      test.Initialise();
-    }
-    // If not, look up our object
-    else
-    {
-      // Cache Hit
-      if (session->imageCache->find(argument) != session->imageCache->end())
-      {
-        test = (*session->imageCache)[argument];
-        timestamp = test.timestamp; // Record timestamp if we have a cached image
-        if (session->loglevel >= 2)
-        {
-          *(session->logfile) << "FIF :: Image cache hit. Number of elements: " << session->imageCache->size() << endl;
-        }
-      }
-      // Cache Miss
-      else
-      {
-        if (session->loglevel >= 2)
-          *(session->logfile) << "FIF :: Image cache miss" << endl;
-        test = IIPImage(argument);
-        test.setFileNamePattern(filename_pattern);
-        test.setFileSystemPrefix(filesystem_prefix);
-        test.Initialise();
-        // Delete items if our list of images is too long.
-        if (session->imageCache->size() >= MAXIMAGECACHE)
-          session->imageCache->erase(session->imageCache->begin());
-      }
-    }
+    if (session->loglevel >= 1)
+      *(session->logfile) << "FIF :: Image cache initialization" << endl;
+    test = IIPImage(argument);
+    test.setFileNamePattern(filename_pattern);
+    test.setFileSystemPrefix(filesystem_prefix);
+    test.Initialise();
 
     /***************************************************************
       Test for different image types - only TIFF is native for now
